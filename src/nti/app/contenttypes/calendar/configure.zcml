@@ -11,4 +11,10 @@
 
 	<include package="nti.contenttypes.calendar" />
 
+	<!-- ACLs -->
+	<configure zcml:condition="have testmode">
+		<adapter factory=".acl.CalendarTestACLProvider" />
+	</configure>
+
+
 </configure>
