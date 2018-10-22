@@ -17,4 +17,13 @@
 	</configure>
 
 
+	<!-- decorators -->
+	<subscriber factory=".decorators._CalendarEditLinkDecorator"
+				for="nti.contenttypes.calendar.interfaces.ICalendar pyramid.interfaces.IRequest"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+	<subscriber factory=".decorators._CalendarEventEditLinkDecorator"
+				for="nti.contenttypes.calendar.interfaces.ICalendarEvent pyramid.interfaces.IRequest"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
 </configure>
