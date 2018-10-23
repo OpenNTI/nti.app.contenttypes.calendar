@@ -11,12 +11,6 @@
 
 	<include package="nti.contenttypes.calendar" />
 
-	<!-- ACLs -->
-	<configure zcml:condition="have testmode">
-		<adapter factory=".acl.CalendarTestACLProvider" />
-	</configure>
-
-
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEditLinkDecorator"
 				for="nti.contenttypes.calendar.interfaces.ICalendar pyramid.interfaces.IRequest"

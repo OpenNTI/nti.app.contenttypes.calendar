@@ -34,7 +34,23 @@ from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.users.users import User
 
+from nti.dataserver.authorization import ROLE_ADMIN
+
+from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
+from nti.dataserver.authorization_acl import ace_denying_all
+
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
 from nti.ntiids.oids import to_external_ntiid_oid
+
+class MockCalendar(Calendar):
+
+    def __acl__(self):
+        aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
+                ace_denying_all()]
+        acl = acl_from_aces(aces)
+        return acl
 
 
 class TestCalendarEventViews(CalendarLayerTest):
@@ -43,7 +59,7 @@ class TestCalendarEventViews(CalendarLayerTest):
     def test_calendar_event_crud(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):
-            calendar = Calendar(title=u"study")
+            calendar = MockCalendar(title=u"study")
             calendar.containerId = u'container_id'
             calendar.id = u'container_id'
             interface.alsoProvides(calendar, IContained)
@@ -127,7 +143,7 @@ class TestCalendarViews(CalendarLayerTest):
     def testCalendarViews(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):
-            calendar = Calendar(title=u"study")
+            calendar = MockCalendar(title=u"study")
             calendar.containerId = u'container_id'
             calendar.id = u'container_id'
             interface.alsoProvides(calendar, IContained)
