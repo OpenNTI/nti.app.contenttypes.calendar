@@ -39,6 +39,8 @@ from nti.dataserver import authorization as nauth
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
+from . import CONTENTS_VIEW_NAME
+
 
 @view_config(route_name='objects.generic.traversal',
              renderer="rest",
@@ -101,7 +103,17 @@ class CalendarUpdateView(UGDPutView):
              context=ICalendar,
              request_method='GET',
              permission=nauth.ACT_READ)
-class CalendarGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
+def get_calendar(context, request):
+    return context
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendar,
+             request_method='GET',
+             permission=nauth.ACT_READ,
+             name=CONTENTS_VIEW_NAME)
+class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
     _allowed_sorting_fields = {'title': lambda x: x.title,
                                'description': lambda x: x.description,
@@ -175,10 +187,6 @@ class CalendarGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
                                                                         reverse=sortOrder)
 
     def __call__(self):
-        raw = is_true(self._params.get('raw'))
-        if raw:
-            return self.context
-
         try:
             filters = self._filter_params()
             sortOn, sortOrder = self._sort_params()

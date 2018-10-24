@@ -93,13 +93,13 @@ class TestCalendarEventViews(CalendarLayerTest):
                                       "end_time": "2018-09-20T12:00:00Z",
                                       "Last Modified": not_none(),
                                       "NTIID": not_none()}))
-        event_ntiid = res['NTIID']
+        event_id = res['ID']
         event_oid = res['OID']
         event_url = '/dataserver2/Objects/%s' % event_oid
 
         with mock_dataserver.mock_db_trans(self.ds):
             assert_that(calendar, has_length(1))
-            event = calendar.retrieve_event(event_ntiid)
+            event = calendar.retrieve_event(event_id)
             assert_that(event, has_properties({'title': 'go to school',
                                                'description': 'let us go',
                                                'icon': '/home/go',
@@ -110,7 +110,7 @@ class TestCalendarEventViews(CalendarLayerTest):
         # Get
         res = self.testapp.get(event_url, status=200).json_body
         assert_that(res, has_entries({"MimeType": "application/vnd.nextthought.calendar.calendarevent",
-                                      "NTIID": event_ntiid}))
+                                      "NTIID": event_oid}))
         self.require_link_href_with_rel(res, 'edit')
 
         # Update
@@ -155,7 +155,7 @@ class TestCalendarViews(CalendarLayerTest):
             assert_that(calendar_ntiid, not_none())
 
         calendar_url = '/dataserver2/Objects/%s' % calendar_ntiid
-        res = self.testapp.get(calendar_url, params={'raw': True}, status=200).json_body
+        res = self.testapp.get(calendar_url, status=200).json_body
         self.require_link_href_with_rel(res, 'edit')
 
         with mock_dataserver.mock_db_trans(self.ds):
@@ -176,15 +176,12 @@ class TestCalendarViews(CalendarLayerTest):
                 calendar.store_event(event)
 
         # Get
-        res = self.testapp.get(calendar_url, params={'raw': True}, status=200).json_body
+        res = self.testapp.get(calendar_url, status=200).json_body
         assert_that(res, has_entries({'title': 'study',
                                       'description': None,
                                       'MimeType': 'application/vnd.nextthought.calendar.calendar'}))
         self.require_link_href_with_rel(res, 'edit')
-
-        res = self.testapp.get(calendar_url, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(6),
-                                      'Total': is_(6)}))
+        self.require_link_href_with_rel(res, 'contents')
 
         # Update
         params = {
@@ -195,6 +192,13 @@ class TestCalendarViews(CalendarLayerTest):
         assert_that(res, has_entries({'title': 'okc',
                                       'description': 'this is okc',
                                       'MimeType': 'application/vnd.nextthought.calendar.calendar'}))
+
+
+        # calendar events
+        calendar_url = calendar_url + '/@@contents'
+        res = self.testapp.get(calendar_url, status=200).json_body
+        assert_that(res, has_entries({'Items': has_length(6),
+                                      'Total': is_(6)}))
 
         # sort
         for field, expected_result, ext_field in (
