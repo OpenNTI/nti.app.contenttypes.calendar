@@ -44,7 +44,7 @@ from nti.externalization.interfaces import StandardExternalFields
              renderer="rest",
              request_method='POST',
              context=ICalendar,
-             permission=nauth.ACT_UPDATE)
+             permission=nauth.ACT_CREATE)
 class CalendarEventCreationView(AbstractAuthenticatedView,
                                 ModeledContentUploadRequestUtilsMixin):
 
@@ -77,7 +77,7 @@ class CalendarEventUpdateView(UGDPutView):
              renderer='rest',
              context=ICalendarEvent,
              request_method='DELETE',
-             permission=nauth.ACT_UPDATE)
+             permission=nauth.ACT_DELETE)
 class CalendarEventDeletionView(AbstractAuthenticatedView):
 
     def __call__(self):
