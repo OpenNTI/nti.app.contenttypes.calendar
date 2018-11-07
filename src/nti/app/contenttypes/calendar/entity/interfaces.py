@@ -46,3 +46,15 @@ class ICommunityCalendar(IEntityCalendar):
     """
     contains(ICommunityCalendarEvent)
     __setitem__.__doc__ = None
+
+
+class IFriendsListCalendarEvent(IEntityCalendarEvent):
+    pass
+
+
+class IFriendsListCalendar(IEntityCalendar):
+    """
+    A calendar that should be annotated on the friendsList object.
+    """
+    contains(IFriendsListCalendarEvent)
+    __setitem__.__doc__ = None

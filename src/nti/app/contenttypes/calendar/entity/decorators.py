@@ -14,7 +14,9 @@ from zope import interface
 
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
 from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import IFriendsListCalendar
 
+from nti.app.renderers.decorators import AbstractRequestAwareDecorator
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver._util import link_belongs_to_user as link_belongs_to_context
@@ -25,6 +27,7 @@ from nti.dataserver.authorization import ACT_READ
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICommunity
+from nti.dataserver.interfaces import IDynamicSharingTargetFriendsList
 
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import StandardExternalFields
@@ -44,7 +47,7 @@ class _UserCalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
         _links = external.setdefault(StandardExternalFields.LINKS, [])
         calendar = IUserCalendar(context, None)
         if calendar is not None:
-            _link = Link(calendar, rel='UserCalendar')
+            _link = Link(calendar, rel='Calendar')
             link_belongs_to_context(_link, context)
             _links.append(_link)
 
@@ -60,6 +63,19 @@ class _CommunityCalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         _links = external.setdefault(StandardExternalFields.LINKS, [])
         calendar = ICommunityCalendar(context, None)
         if calendar is not None:
-            _link = Link(calendar, rel='CommunityCalendar')
+            _link = Link(calendar, rel='Calendar')
+            link_belongs_to_context(_link, context)
+            _links.append(_link)
+
+
+@component.adapter(IDynamicSharingTargetFriendsList)
+@interface.implementer(IExternalObjectDecorator)
+class _FriendsListCalendarLinkDecorator(AbstractRequestAwareDecorator):
+
+    def _do_decorate_external(self, context, external):
+        _links = external.setdefault(StandardExternalFields.LINKS, [])
+        calendar = IFriendsListCalendar(context, None)
+        if calendar is not None:
+            _link = Link(calendar, rel='Calendar')
             link_belongs_to_context(_link, context)
             _links.append(_link)

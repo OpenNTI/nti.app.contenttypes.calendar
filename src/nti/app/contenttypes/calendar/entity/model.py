@@ -16,6 +16,8 @@ from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendarEvent
 from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
 from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendarEvent
+from nti.app.contenttypes.calendar.entity.interfaces import IFriendsListCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import IFriendsListCalendarEvent
 
 from nti.contenttypes.calendar.model import Calendar
 from nti.contenttypes.calendar.model import CalendarEvent
@@ -58,6 +60,25 @@ class CommunityCalendarEvent(CalendarEvent):
 
     __external_class_name__ = "CommunityCalendarEvent"
     mimeType = mime_type = "application/vnd.nextthought.calendar.communitycalendarevent"
+
+    @LazyOnClass
+    def __acl__(self):
+        # If we don't have this, it would derive one from ICreated, rather than its parent.
+        return acl_from_aces([])
+
+
+@interface.implementer(IFriendsListCalendar)
+class FriendsListCalendar(Calendar, Contained):
+
+    __external_class_name__ = "FriendsListCalendar"
+    mimeType = mime_type = "application/vnd.nextthought.calendar.friendslistcalendar"
+
+
+@interface.implementer(IFriendsListCalendarEvent)
+class FriendsListCalendarEvent(CalendarEvent):
+
+    __external_class_name__ = "FriendsListCalendarEvent"
+    mimeType = mime_type = "application/vnd.nextthought.calendar.friendslistcalendarevent"
 
     @LazyOnClass
     def __acl__(self):

@@ -18,12 +18,16 @@ from zope import interface
 
 from nti.app.contenttypes.calendar.entity.decorators import _UserCalendarLinkDecorator
 from nti.app.contenttypes.calendar.entity.decorators import _CommunityCalendarLinkDecorator
+from nti.app.contenttypes.calendar.entity.decorators import _FriendsListCalendarLinkDecorator
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
+from nti.dataserver.tests import mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 from nti.dataserver.users import Community
+from nti.dataserver.users import FriendsList
+from nti.dataserver.users import DynamicFriendsList
 
 from nti.externalization.externalization import toExternalObject
 
@@ -42,14 +46,28 @@ class TestDecorators(ApplicationLayerTest):
         mock_has_permission.is_callable().returns(True)
         user = self._create_user(u'test001')
         external = self._decorate(_UserCalendarLinkDecorator, user)
-        links = [x.rel for x in external['Links'] if x.rel == 'UserCalendar']
+        links = [x.rel for x in external['Links'] if x.rel == 'Calendar']
         assert_that(links, has_length(1))
 
     @WithMockDSTrans
     @fudge.patch('nti.app.contenttypes.calendar.entity.decorators.has_permission')
-    def test_user_calendar_link_decorator(self, mock_has_permission):
+    def test_community_calendar_link_decorator(self, mock_has_permission):
         mock_has_permission.is_callable().returns(True)
         community = Community.create_community(self.ds, username=u'test001')
         external = self._decorate(_CommunityCalendarLinkDecorator, community)
-        links = [x.rel for x in external['Links'] if x.rel == 'CommunityCalendar']
+        links = [x.rel for x in external['Links'] if x.rel == 'Calendar']
         assert_that(links, has_length(1))
+
+    @WithMockDSTrans
+    def test_friendslist_calendar_link_decorator(self):
+        obj = DynamicFriendsList(username=u'test001')
+        mock_dataserver.current_transaction.add(obj)
+        external = self._decorate(_FriendsListCalendarLinkDecorator, obj)
+        links = [x.rel for x in external['Links'] if x.rel == 'Calendar']
+        assert_that(links, has_length(1))
+
+        obj = FriendsList(username=u'test002')
+        mock_dataserver.current_transaction.add(obj)
+        external = self._decorate(_FriendsListCalendarLinkDecorator, obj)
+        links = [x.rel for x in external['Links'] if x.rel == 'Calendar']
+        assert_that(links, has_length(0))

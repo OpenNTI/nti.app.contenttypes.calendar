@@ -21,17 +21,22 @@ from zope.traversing.interfaces import IPathAdapter
 
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
 from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import IFriendsListCalendar
 
 from nti.app.contenttypes.calendar.entity.model import UserCalendar
 from nti.app.contenttypes.calendar.entity.model import CommunityCalendar
+from nti.app.contenttypes.calendar.entity.model import FriendsListCalendar
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICommunity
+from nti.dataserver.interfaces import IDynamicSharingTargetFriendsList
 
 logger = __import__('logging').getLogger(__name__)
 
+KEY = u'Calendar'
 
-def _create_annotation(parent, key, calendar_factory, create=True):
+
+def _create_annotation(parent, calendar_factory, key=KEY, create=True):
     result = None
     annotations = IAnnotations(parent)
     try:
@@ -52,7 +57,19 @@ def _create_annotation(parent, key, calendar_factory, create=True):
 @component.adapter(IUser)
 @interface.implementer(IUserCalendar)
 def _UserCalendarFactory(user, create=True):
-    return _create_annotation(user, u'UserCalendar', UserCalendar, create=create)
+    return _create_annotation(user, UserCalendar, create=create)
+
+
+@component.adapter(ICommunity)
+@interface.implementer(ICommunityCalendar)
+def _CommunityCalendarFactory(community, create=True):
+    return _create_annotation(community, CommunityCalendar, create=create)
+
+
+@component.adapter(IDynamicSharingTargetFriendsList)
+@interface.implementer(IFriendsListCalendar)
+def _FriendsListCalendarFactory(friendsList, create=True):
+    return _create_annotation(friendsList, FriendsListCalendar, create=create)
 
 
 @interface.implementer(IPathAdapter)
@@ -61,13 +78,13 @@ def _UserCalendarPathAdapter(context, request):
     return _UserCalendarFactory(context)
 
 
-@component.adapter(ICommunity)
-@interface.implementer(ICommunityCalendar)
-def _CommunityCalendarFactory(community, create=True):
-    return _create_annotation(community, u'CommunityCalendar', CommunityCalendar, create=create)
-
-
 @interface.implementer(IPathAdapter)
 @component.adapter(ICommunity, IRequest)
 def _CommunityCalendarPathAdapter(context, request):
     return _CommunityCalendarFactory(context)
+
+
+@interface.implementer(IPathAdapter)
+@component.adapter(IDynamicSharingTargetFriendsList, IRequest)
+def _FriendsListCalendarPathAdapter(context, request):
+    return _FriendsListCalendarFactory(context)
