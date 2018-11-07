@@ -24,4 +24,6 @@
 				for="nti.contenttypes.calendar.interfaces.ICalendarEvent pyramid.interfaces.IRequest"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
+	<include package=".entity" file="configure.zcml" />
+
 </configure>

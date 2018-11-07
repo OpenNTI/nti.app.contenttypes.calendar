@@ -1,0 +1,33 @@
+<!-- -*- mode: nxml -*- -->
+<configure	xmlns="http://namespaces.zope.org/zope"
+			xmlns:i18n="http://namespaces.zope.org/i18n"
+			xmlns:ext="http://nextthought.com/ntp/ext"
+			xmlns:zcml="http://namespaces.zope.org/zcml"
+			i18n_domain="zope">
+
+	<include package="zope.component" file="meta.zcml" />
+	<include package="zope.component" />
+
+    <!-- Traversal -->
+    <adapter name="UserCalendar"
+             for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+             factory=".adapters._UserCalendarPathAdapter"
+             provides="zope.traversing.interfaces.IPathAdapter"/>
+
+    <!-- Adapters -->
+    <adapter factory=".adapters._UserCalendarFactory"
+             provides=".interfaces.IUserCalendar"
+             for="nti.dataserver.interfaces.IUser" />
+
+    <!-- decorators -->
+    <subscriber factory=".decorators._UserCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+
+    <ext:registerAutoPackageIO
+        root_interfaces=".interfaces.IUserCalendar
+                         .interfaces.IUserCalendarEvent"
+        modules=".model" />
+
+</configure>
