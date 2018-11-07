@@ -17,11 +17,13 @@ from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar.entity.decorators import _UserCalendarLinkDecorator
+from nti.app.contenttypes.calendar.entity.decorators import _CommunityCalendarLinkDecorator
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
-
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
+
+from nti.dataserver.users import Community
 
 from nti.externalization.externalization import toExternalObject
 
@@ -41,4 +43,13 @@ class TestDecorators(ApplicationLayerTest):
         user = self._create_user(u'test001')
         external = self._decorate(_UserCalendarLinkDecorator, user)
         links = [x.rel for x in external['Links'] if x.rel == 'UserCalendar']
+        assert_that(links, has_length(1))
+
+    @WithMockDSTrans
+    @fudge.patch('nti.app.contenttypes.calendar.entity.decorators.has_permission')
+    def test_user_calendar_link_decorator(self, mock_has_permission):
+        mock_has_permission.is_callable().returns(True)
+        community = Community.create_community(self.ds, username=u'test001')
+        external = self._decorate(_CommunityCalendarLinkDecorator, community)
+        links = [x.rel for x in external['Links'] if x.rel == 'CommunityCalendar']
         assert_that(links, has_length(1))

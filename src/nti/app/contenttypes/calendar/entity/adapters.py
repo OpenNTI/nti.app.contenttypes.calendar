@@ -19,37 +19,55 @@ from zope.annotation.interfaces import IAnnotations
 
 from zope.traversing.interfaces import IPathAdapter
 
-from nti.app.contenttypes.calendar.entity.model import IUserCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
 
 from nti.app.contenttypes.calendar.entity.model import UserCalendar
+from nti.app.contenttypes.calendar.entity.model import CommunityCalendar
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ICommunity
 
 logger = __import__('logging').getLogger(__name__)
 
 
-@component.adapter(IUser)
-@interface.implementer(IUserCalendar)
-def _UserCalendarFactory(user, create=True):
+def _create_annotation(parent, key, calendar_factory, create=True):
     result = None
-    KEY = u'UserCalendar'
-    annotations = IAnnotations(user)
+    annotations = IAnnotations(parent)
     try:
-        result = annotations[KEY]
+        result = annotations[key]
     except KeyError:
         if create:
-            result = UserCalendar()
-            annotations[KEY] = result
-            result.__name__ = KEY
-            result.__parent__ = user
-            connection = IConnection(user, None)
+            result = calendar_factory()
+            annotations[key] = result
+            result.__name__ = key
+            result.__parent__ = parent
+            connection = IConnection(parent, None)
             if connection is not None:
                 # pylint: disable=too-many-function-args
                 connection.add(result)
     return result
 
 
+@component.adapter(IUser)
+@interface.implementer(IUserCalendar)
+def _UserCalendarFactory(user, create=True):
+    return _create_annotation(user, u'UserCalendar', UserCalendar, create=create)
+
+
 @interface.implementer(IPathAdapter)
 @component.adapter(IUser, IRequest)
 def _UserCalendarPathAdapter(context, request):
     return _UserCalendarFactory(context)
+
+
+@component.adapter(ICommunity)
+@interface.implementer(ICommunityCalendar)
+def _CommunityCalendarFactory(community, create=True):
+    return _create_annotation(community, u'CommunityCalendar', CommunityCalendar, create=create)
+
+
+@interface.implementer(IPathAdapter)
+@component.adapter(ICommunity, IRequest)
+def _CommunityCalendarPathAdapter(context, request):
+    return _CommunityCalendarFactory(context)

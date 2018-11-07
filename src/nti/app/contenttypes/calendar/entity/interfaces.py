@@ -34,3 +34,15 @@ class IUserCalendar(IEntityCalendar):
     """
     contains(IUserCalendarEvent)
     __setitem__.__doc__ = None
+
+
+class ICommunityCalendarEvent(IEntityCalendarEvent):
+    pass
+
+
+class ICommunityCalendar(IEntityCalendar):
+    """
+    A calendar that should be annotated on the community object.
+    """
+    contains(ICommunityCalendarEvent)
+    __setitem__.__doc__ = None

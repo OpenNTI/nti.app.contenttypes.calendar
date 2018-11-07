@@ -25,6 +25,8 @@ from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.app.contenttypes.calendar.entity.model import UserCalendar
 from nti.app.contenttypes.calendar.entity.model import UserCalendarEvent
+from nti.app.contenttypes.calendar.entity.model import CommunityCalendar
+from nti.app.contenttypes.calendar.entity.model import CommunityCalendarEvent
 
 from nti.externalization import internalization
 
@@ -41,7 +43,7 @@ class TestExternalization(ApplicationLayerTest):
             internalization.update_from_external_object(new_io, external)
         return new_io
 
-    def testCalendarEvent(self):
+    def testUserCalendarEvent(self):
         now = datetime.datetime.utcnow()
         obj =  UserCalendarEvent(title=u'reading',
                              description=u'this is',
@@ -71,13 +73,58 @@ class TestExternalization(ApplicationLayerTest):
                                             'icon': '/abc/efg',
                                             'lastModified': not_none()}))
 
-    def testCalendar(self):
+    def testCommunityCalendarEvent(self):
+        now = datetime.datetime.utcnow()
+        obj =  CommunityCalendarEvent(title=u'reading',
+                             description=u'this is',
+                             location=u'oklahoma',
+                             end_time=now,
+                             icon=u'/abc/efg')
+        assert_that(obj.start_time, is_(obj.created))
+
+        external = toExternalObject(obj)
+        assert_that(external, has_entries({'Class': 'CommunityCalendarEvent',
+                                           'title': 'reading',
+                                           'description': 'this is',
+                                           'location': 'oklahoma',
+                                           'start_time': not_none(),
+                                           'end_time': not_none(),
+                                           'icon': '/abc/efg',
+                                           'Last Modified': not_none(),
+                                           'MimeType': 'application/vnd.nextthought.calendar.communitycalendarevent'}))
+
+        new_io = self._internalize(external)
+        assert_that(new_io, instance_of(CommunityCalendarEvent))
+        assert_that(new_io, has_properties({'title': 'reading',
+                                            'description': 'this is',
+                                            'location': 'oklahoma',
+                                            'start_time': not_none(),
+                                            'end_time': not_none(),
+                                            'icon': '/abc/efg',
+                                            'lastModified': not_none()}))
+
+    def testUserCalendar(self):
         obj = UserCalendar(title=u"today", description=u'let us go')
         external = toExternalObject(obj)
         assert_that(external, has_entries({'Class': 'UserCalendar',
                                            'title': 'today',
                                            'description': 'let us go',
                                            "MimeType": "application/vnd.nextthought.calendar.usercalendar"}))
+
+        external = {'title': u'future', 'description': 'do not go'}
+        new_obj = self._internalize(external, obj, factory_=None)
+        assert_that(new_obj, same_instance(obj))
+        assert_that(new_obj, has_properties({'title': 'future', 'description': 'do not go'}))
+
+        assert_that(self._internalize(external, factory_=None), is_(None))
+
+    def testCommunityCalendar(self):
+        obj = CommunityCalendar(title=u"today", description=u'let us go')
+        external = toExternalObject(obj)
+        assert_that(external, has_entries({'Class': 'CommunityCalendar',
+                                           'title': 'today',
+                                           'description': 'let us go',
+                                           "MimeType": "application/vnd.nextthought.calendar.communitycalendar"}))
 
         external = {'title': u'future', 'description': 'do not go'}
         new_obj = self._internalize(external, obj, factory_=None)

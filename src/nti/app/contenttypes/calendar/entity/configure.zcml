@@ -14,20 +14,35 @@
              factory=".adapters._UserCalendarPathAdapter"
              provides="zope.traversing.interfaces.IPathAdapter"/>
 
+    <adapter name="CommunityCalendar"
+             for="nti.dataserver.interfaces.ICommunity pyramid.interfaces.IRequest"
+             factory=".adapters._CommunityCalendarPathAdapter"
+             provides="zope.traversing.interfaces.IPathAdapter"/>
+
     <!-- Adapters -->
     <adapter factory=".adapters._UserCalendarFactory"
              provides=".interfaces.IUserCalendar"
              for="nti.dataserver.interfaces.IUser" />
+
+    <adapter factory=".adapters._CommunityCalendarFactory"
+             provides=".interfaces.ICommunityCalendar"
+             for="nti.dataserver.interfaces.ICommunity" />
 
     <!-- decorators -->
     <subscriber factory=".decorators._UserCalendarLinkDecorator"
                 for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
+    <subscriber factory=".decorators._CommunityCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.ICommunity pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
 
     <ext:registerAutoPackageIO
         root_interfaces=".interfaces.IUserCalendar
-                         .interfaces.IUserCalendarEvent"
+                         .interfaces.IUserCalendarEvent
+                         .interfaces.ICommunityCalendar
+                         .interfaces.ICommunityCalendarEvent"
         modules=".model" />
 
 </configure>

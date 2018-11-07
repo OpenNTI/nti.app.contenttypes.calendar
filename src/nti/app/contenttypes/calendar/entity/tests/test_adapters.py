@@ -16,11 +16,16 @@ from hamcrest import raises
 from hamcrest import calling
 from hamcrest import has_length
 from hamcrest import assert_that
+from hamcrest import instance_of
 from hamcrest import same_instance
+
+from zope import component
 
 from zope.annotation.interfaces import IAnnotations
 
 from zope.container.interfaces import InvalidItemType
+
+from zope.traversing.interfaces import IPathAdapter
 
 from nti.testing.matchers import validly_provides
 from nti.testing.matchers import verifiably_provides
@@ -28,8 +33,12 @@ from nti.testing.matchers import verifiably_provides
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
 
+from nti.app.contenttypes.calendar.entity.model import UserCalendar
 from nti.app.contenttypes.calendar.entity.model import UserCalendarEvent
+from nti.app.contenttypes.calendar.entity.model import CommunityCalendar
+from nti.app.contenttypes.calendar.entity.model import CommunityCalendarEvent
 
 from nti.contenttypes.calendar.model import CalendarEvent
 
@@ -37,11 +46,13 @@ from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
+from nti.dataserver.users import Community
+
 
 class TestAdapters(ApplicationLayerTest):
 
     @WithMockDSTrans
-    def test_calendar(self):
+    def test_user_calendar(self):
         user = self._create_user(u'test001')
 
         connection = mock_dataserver.current_transaction
@@ -73,3 +84,53 @@ class TestAdapters(ApplicationLayerTest):
         # bad calendar event type
         event = CalendarEvent(title=u'abc')
         assert_that(calling(calendar.store_event).with_args(event), raises(InvalidItemType))
+
+    @WithMockDSTrans
+    def test_community_calendar(self):
+        community = Community.create_community(self.ds, username=u'test001')
+
+        connection = mock_dataserver.current_transaction
+        connection.add(community)
+        calendar = ICommunityCalendar(community, None)
+        assert_that(calendar, is_not(none()))
+        assert_that(calendar.__parent__, same_instance(community))
+
+        assert_that(calendar, validly_provides(ICommunityCalendar))
+        assert_that(calendar, verifiably_provides(ICommunityCalendar))
+
+        event = CommunityCalendarEvent(title=u'gogo')
+        calendar.store_event(event)
+
+        assert_that(calendar, has_length(1))
+        assert_that(event.id, is_in(calendar))
+        assert_that(list(calendar), has_length(1))
+
+        assert_that(calendar.retrieve_event(event.id), same_instance(event))
+        assert_that(event.__parent__, same_instance(calendar))
+
+        calendar.remove_event(event)
+        assert_that(calendar, has_length(0))
+        assert_that(event.__parent__, is_(None))
+
+        annotations = IAnnotations(community)
+        assert_that(annotations['CommunityCalendar'], same_instance(calendar))
+
+        # bad calendar event type
+        event = CalendarEvent(title=u'abc')
+        assert_that(calling(calendar.store_event).with_args(event), raises(InvalidItemType))
+
+    @WithMockDSTrans
+    def test_user_calendar_path_adapter(self):
+        user = self._create_user(u'test001')
+        adapter = component.queryMultiAdapter((user, self.request), IPathAdapter, name='UserCalendar')
+        assert_that(adapter, instance_of(UserCalendar))
+        assert_that(adapter.__name__, is_('UserCalendar'))
+        assert_that(adapter.__parent__, same_instance(user))
+
+    @WithMockDSTrans
+    def test_community_calendar_path_adapter(self):
+        community = Community.create_community(self.ds, username=u'test001')
+        adapter = component.queryMultiAdapter((community, self.request), IPathAdapter, name='CommunityCalendar')
+        assert_that(adapter, instance_of(CommunityCalendar))
+        assert_that(adapter.__name__, is_('CommunityCalendar'))
+        assert_that(adapter.__parent__, same_instance(community))

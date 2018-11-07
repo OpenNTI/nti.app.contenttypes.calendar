@@ -13,6 +13,7 @@ from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -23,6 +24,7 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.dataserver.authorization import ACT_READ
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ICommunity
 
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import StandardExternalFields
@@ -42,8 +44,22 @@ class _UserCalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
         _links = external.setdefault(StandardExternalFields.LINKS, [])
         calendar = IUserCalendar(context, None)
         if calendar is not None:
-            _link = Link(calendar,
-                         rel='UserCalendar',
-                         method='GET')
+            _link = Link(calendar, rel='UserCalendar')
+            link_belongs_to_context(_link, context)
+            _links.append(_link)
+
+
+@component.adapter(ICommunity)
+@interface.implementer(IExternalObjectDecorator)
+class _CommunityCalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+    def _predicate(self, context, external):
+        return has_permission(ACT_READ, context, self.request)
+
+    def _do_decorate_external(self, context, external):
+        _links = external.setdefault(StandardExternalFields.LINKS, [])
+        calendar = ICommunityCalendar(context, None)
+        if calendar is not None:
+            _link = Link(calendar, rel='CommunityCalendar')
             link_belongs_to_context(_link, context)
             _links.append(_link)
