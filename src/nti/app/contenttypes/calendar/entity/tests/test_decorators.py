@@ -16,6 +16,7 @@ from hamcrest import assert_that
 from zope import component
 from zope import interface
 
+from nti.app.contenttypes.calendar.entity.decorators import _MyCalendarLinkDecorator
 from nti.app.contenttypes.calendar.entity.decorators import _UserCalendarLinkDecorator
 from nti.app.contenttypes.calendar.entity.decorators import _CommunityCalendarLinkDecorator
 from nti.app.contenttypes.calendar.entity.decorators import _FriendsListCalendarLinkDecorator
@@ -39,6 +40,15 @@ class TestDecorators(ApplicationLayerTest):
         decorator = decorator(context, None)
         decorator.decorateExternalMapping(context, external)
         return external
+
+    @WithMockDSTrans
+    @fudge.patch('nti.app.contenttypes.calendar.entity.decorators.has_permission')
+    def test_my_calendar_link_decorator(self, mock_has_permission):
+        mock_has_permission.is_callable().returns(True)
+        user = self._create_user(u'test001')
+        external = self._decorate(_MyCalendarLinkDecorator, user)
+        links = [x.rel for x in external['Links'] if x.rel == 'MyCalendar']
+        assert_that(links, has_length(1))
 
     @WithMockDSTrans
     @fudge.patch('nti.app.contenttypes.calendar.entity.decorators.has_permission')

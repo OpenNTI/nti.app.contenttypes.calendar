@@ -27,9 +27,14 @@ from nti.app.contenttypes.calendar.entity.model import UserCalendar
 from nti.app.contenttypes.calendar.entity.model import CommunityCalendar
 from nti.app.contenttypes.calendar.entity.model import FriendsListCalendar
 
+from nti.contenttypes.calendar.interfaces import ICalendar
+from nti.contenttypes.calendar.interfaces import ICalendarEventProvider
+
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICommunity
 from nti.dataserver.interfaces import IDynamicSharingTargetFriendsList
+
+from nti.dataserver.users.interfaces import IDisallowMembershipOperations
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -88,3 +93,65 @@ def _CommunityCalendarPathAdapter(context, request):
 @component.adapter(IDynamicSharingTargetFriendsList, IRequest)
 def _FriendsListCalendarPathAdapter(context, request):
     return _FriendsListCalendarFactory(context)
+
+
+@component.adapter(IUser)
+@interface.implementer(ICalendarEventProvider)
+class UserCalendarEventProvider(object):
+
+    def __init__(self, user):
+        self.user = user
+
+    def iter_events(self):
+        result = []
+        calendar = ICalendar(self.user, None)
+        if calendar is not None:
+            result.extend([x for x in calendar.values()])
+        return result
+
+
+@component.adapter(IUser)
+@interface.implementer(ICalendarEventProvider)
+class CommunityCalendarEventProvider(object):
+
+    def __init__(self, user):
+        self.user = user
+
+    def iter_events(self):
+        result = []
+        for community in self._communities(self.user):
+            calendar = ICalendar(community, None)
+            if calendar is not None:
+                result.extend([x for x in calendar.values()])
+        return result
+
+    def _communities(self, user):
+        def selector(x):
+            return ICommunity.providedBy(x) \
+                and not IDisallowMembershipOperations.providedBy(x) \
+                and (x.public or user in x)
+        return [x for x in user.dynamic_memberships if selector(x)]
+
+
+@component.adapter(IUser)
+@interface.implementer(ICalendarEventProvider)
+class FriendsListCalendarEventProvider(object):
+
+    def __init__(self, user):
+        self.user = user
+
+    def iter_events(self):
+        result = []
+        for group in self._groups(self.user):
+            calendar = ICalendar(group, None)
+            if calendar is not None:
+                result.extend([x for x in calendar.values()])
+        return result
+
+    def _groups(self, user):
+        def selector(x):
+            return IDynamicSharingTargetFriendsList.providedBy(x) \
+                and (user in x or user == x.creator)
+
+        result = set(user.friendsLists.values()) | set(user.dynamic_memberships)
+        return [x for x in result if selector(x)]

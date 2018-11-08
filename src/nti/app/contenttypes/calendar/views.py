@@ -157,9 +157,13 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
         return res
 
+    def get_source_items(self):
+        return [x for x in self.context.values()]
+
     def _filter_items(self, filters):
+        items = self.get_source_items()
         if not filters:
-            return [x for x in self.context.values()]
+            return items
 
         def _include_item(item):
             for _filter in filters.values():
@@ -167,7 +171,7 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
                     return False
             return True
 
-        return [x for x in self.context.values() if _include_item(x)]
+        return [x for x in items if _include_item(x)]
 
     def _sort_params(self):
         sortOn = self._params.get('sortOn')

@@ -24,6 +24,18 @@
              factory=".adapters._FriendsListCalendarPathAdapter"
              provides="zope.traversing.interfaces.IPathAdapter"/>
 
+    <subscriber factory=".adapters.UserCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
+    <subscriber factory=".adapters.CommunityCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
+    <subscriber factory=".adapters.FriendsListCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
     <!-- Adapters -->
     <adapter factory=".adapters._UserCalendarFactory"
              provides=".interfaces.IUserCalendar"
@@ -39,6 +51,10 @@
 
     <!-- decorators -->
     <subscriber factory=".decorators._UserCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators._MyCalendarLinkDecorator"
                 for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
