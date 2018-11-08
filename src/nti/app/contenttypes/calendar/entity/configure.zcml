@@ -50,6 +50,15 @@
                 for="nti.dataserver.interfaces.IDynamicSharingTargetFriendsList pyramid.interfaces.IRequest"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
+    <!-- acl -->
+    <adapter factory=".acl._CommunityCalendarACLProvider"
+             for=".interfaces.ICommunityCalendar"
+             provides="nti.dataserver.interfaces.IACLProvider"/>
+
+    <adapter factory=".acl._FriendsListCalendarACLProvider"
+             for=".interfaces.IFriendsListCalendar"
+             provides="nti.dataserver.interfaces.IACLProvider"/>
+
     <ext:registerAutoPackageIO
         root_interfaces=".interfaces.IUserCalendar
                          .interfaces.IUserCalendarEvent

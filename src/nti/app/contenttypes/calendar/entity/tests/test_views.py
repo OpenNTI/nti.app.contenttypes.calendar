@@ -1,0 +1,269 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+
+# pylint: disable=protected-access,too-many-public-methods,arguments-differ
+
+from hamcrest import is_
+from hamcrest import contains
+from hamcrest import not_none
+from hamcrest import has_entry
+from hamcrest import has_entries
+from hamcrest import has_length
+from hamcrest import has_properties
+from hamcrest import assert_that
+
+from datetime import datetime
+
+from zope import interface
+from zope import component
+
+from nti.app.contenttypes.calendar.tests import CalendarLayerTest
+
+from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
+from nti.app.contenttypes.calendar.entity.interfaces import IFriendsListCalendar
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
+
+from nti.dataserver.tests import mock_dataserver
+
+from nti.dataserver.users import User
+from nti.dataserver.users import Community
+
+
+class TestUserCalendarViews(CalendarLayerTest):
+
+    @WithSharedApplicationMockDS(testapp=True, users=(u'test001', u'test002', u'admin001@nextthought.com'))
+    def test_user_calendar(self):
+        # Only owner could have all permissions.
+        community_name = u'test.community.com'
+        with mock_dataserver.mock_db_trans(self.ds):
+            community = Community.create_community(self.ds, username=community_name)
+            for username in (u'test001', u'test002', u'admin001@nextthought.com'):
+                user = User.get_user('test001')
+                user.record_dynamic_membership(community)
+
+        admin_env = self._make_extra_environ(username='admin001@nextthought.com')
+        owner_env = self._make_extra_environ(username='test001')
+        other_env = self._make_extra_environ(username='test002')
+        anonyous_env = self._make_extra_environ(username=None)
+
+        # Read Calendar
+        url = '/dataserver2/users/%s/Calendar' % u'test001'
+        self.testapp.get(url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(url, status=403, extra_environ=other_env)
+        self.testapp.get(url, status=403, extra_environ=admin_env)
+        result = self.testapp.get(url, status=200, extra_environ=owner_env).json_body
+        assert_that(result, has_entries({'MimeType': 'application/vnd.nextthought.calendar.usercalendar'}))
+
+        # Create Event
+        params = {
+            "title": "go to school",
+            "MimeType": "application/vnd.nextthought.calendar.usercalendarevent"
+        }
+        self.testapp.post_json(url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=other_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=admin_env)
+        res = self.testapp.post_json(url, params=params, status=201, extra_environ=owner_env).json_body
+        assert_that(res, has_entries({'title': 'go to school'}))
+        EVENT_ID = res['ID']
+        event_url = '%s/%s' % (url, EVENT_ID)
+
+        # Read event.
+        self.testapp.get(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(event_url, status=403, extra_environ=other_env)
+        self.testapp.get(event_url, status=403, extra_environ=admin_env)
+        res = self.testapp.get(event_url, status=200, extra_environ=owner_env).json_body
+        assert_that(res, has_entries({'MimeType': 'application/vnd.nextthought.calendar.usercalendarevent'}))
+
+        # Update event.
+        self.testapp.put_json(event_url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=other_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=admin_env)
+        self.testapp.put_json(event_url, params=params, status=200, extra_environ=owner_env)
+
+        # Delete Event.
+        self.testapp.delete(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.delete(event_url, status=403, extra_environ=other_env)
+        self.testapp.delete(event_url, status=403, extra_environ=admin_env)
+        self.testapp.delete(event_url, status=204, extra_environ=owner_env)
+
+
+class TestCommunityCalendarViews(CalendarLayerTest):
+
+    @WithSharedApplicationMockDS(testapp=True, users=(u'test001', u'test002', u'admin001@nextthought.com'))
+    def test_community_calendar(self):
+        # admin has all permissions
+        # Community member has read permission.
+        community_name = u'test.community.com'
+        with mock_dataserver.mock_db_trans(self.ds):
+            community = Community.create_community(self.ds, username=community_name)
+            assert_that(ICommunityCalendar(community), not_none())
+
+            user1 = User.get_user('test001')
+            user1.record_dynamic_membership(community)
+
+        admin_env = self._make_extra_environ(username='admin001@nextthought.com')
+        member_env = self._make_extra_environ(username='test001')
+        other_env = self._make_extra_environ(username='test002')
+        anonyous_env = self._make_extra_environ(username=None)
+
+        # Read Calendar.
+        url = '/dataserver2/users/%s/Calendar' % community_name
+        self.testapp.get(url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(url, status=403, extra_environ=other_env)
+        self.testapp.get(url, status=200, extra_environ=member_env)
+        result = self.testapp.get(url, status=200, extra_environ=admin_env).json_body
+        assert_that(result, has_entries({'MimeType': 'application/vnd.nextthought.calendar.communitycalendar'}))
+
+        # Create event.
+        params = {
+            "title": "go to school",
+            "MimeType": "application/vnd.nextthought.calendar.communitycalendarevent"
+        }
+        self.testapp.post_json(url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=other_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=member_env)
+        res = self.testapp.post_json(url, params=params, status=201, extra_environ=admin_env).json_body
+        assert_that(res, has_entries({'title': 'go to school'}))
+        EVENT_ID = res['ID']
+
+        # Read event.
+        event_url = '/dataserver2/users/%s/Calendar/%s' % (community_name, EVENT_ID)
+        self.testapp.get(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(event_url, status=403, extra_environ=other_env)
+        self.testapp.get(event_url, status=200, extra_environ=member_env)
+        res = self.testapp.get(event_url, status=200, extra_environ=admin_env).json_body
+        assert_that(res, has_entries({'MimeType': 'application/vnd.nextthought.calendar.communitycalendarevent'}))
+
+        # Update event.
+        self.testapp.put_json(event_url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=other_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=member_env)
+        self.testapp.put_json(event_url, params=params, status=200, extra_environ=admin_env)
+
+        # Delete Event.
+        self.testapp.delete(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.delete(event_url, status=403, extra_environ=other_env)
+        self.testapp.delete(event_url, status=403, extra_environ=member_env)
+        self.testapp.delete(event_url, status=204, extra_environ=admin_env)
+
+
+class TestFriendsListCalendarViews(CalendarLayerTest):
+
+    def _create_group(self, username):
+        params  = {
+            "MimeType":"application/vnd.nextthought.dynamicfriendslist",
+            "Username":"ohyeah-%s_d2a97129-6cc8-4f8a-b883-edcd78ade177" % username,
+            "alias":"ohyeah",
+            "friends":[],
+            "IsDynamicSharing":True
+        }
+        url = '/dataserver2/users/%s/Groups' % username
+        result = self.testapp.post_json(url, params=params, status=201, extra_environ=self._make_extra_environ(username=username)).json_body
+        return result
+
+    @WithSharedApplicationMockDS(testapp=True, users=(u'test001', u'test002', u'test003', u'test004', u'admin001@nextthought.com'))
+    def test_group_calendar(self):
+        # owner have all permissions on calendar, have read permission on all events.
+        # friends have all permissions on events created by self, and have read permission on all events.
+        res = self._create_group('test001')
+        group_name = res['realname']
+        url = res['href'] + '/Calendar'
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            user = User.get_user('test001')
+            friends = user.friendsLists[group_name]
+            friends.addFriend(User.get_user('test002'))
+            friends.addFriend(User.get_user('test003'))
+
+        admin_env = self._make_extra_environ(username='admin001@nextthought.com')
+        owner_env = self._make_extra_environ(username='test001')
+        friend_env = self._make_extra_environ(username='test002')
+        other_env = self._make_extra_environ(username='test004')
+        anonyous_env = self._make_extra_environ(username=None)
+
+        another_friend_env = self._make_extra_environ(username='test003')
+
+        # GET
+        self.testapp.get(url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(url, status=403, extra_environ=other_env)
+        self.testapp.get(url, status=403, extra_environ=admin_env)
+        self.testapp.get(url, status=200, extra_environ=friend_env)
+        result = self.testapp.get(url, status=200, extra_environ=owner_env).json_body
+        assert_that(result, has_entries({'MimeType': 'application/vnd.nextthought.calendar.friendslistcalendar'}))
+
+        # Owner created event
+        params = {
+            "title": "go to school",
+            "MimeType": "application/vnd.nextthought.calendar.friendslistcalendarevent"
+        }
+        self.testapp.post_json(url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=other_env)
+        self.testapp.post_json(url, params=params, status=403, extra_environ=admin_env)
+        res = self.testapp.post_json(url, params=params, status=201, extra_environ=owner_env).json_body
+        assert_that(res, has_entries({'title': 'go to school'}))
+        EVENT_ID = res['ID']
+
+        # Read event.
+        event_url = "%s/%s" % (url, EVENT_ID)
+        self.testapp.get(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(event_url, status=403, extra_environ=other_env)
+        self.testapp.get(event_url, status=403, extra_environ=admin_env)
+        self.testapp.get(event_url, status=200, extra_environ=friend_env)
+        res = self.testapp.get(event_url, status=200, extra_environ=owner_env).json_body
+        assert_that(res, has_entries({'MimeType': 'application/vnd.nextthought.calendar.friendslistcalendarevent'}))
+
+        # Update event.
+        self.testapp.put_json(event_url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=other_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=admin_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=friend_env)
+        self.testapp.put_json(event_url, params=params, status=200, extra_environ=owner_env)
+
+        # Delete Event.
+        self.testapp.delete(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.delete(event_url, status=403, extra_environ=other_env)
+        self.testapp.delete(event_url, status=403, extra_environ=admin_env)
+        self.testapp.delete(event_url, status=403, extra_environ=friend_env)
+        self.testapp.delete(event_url, status=204, extra_environ=owner_env)
+
+        # Friend created event.
+        res = self.testapp.post_json(url, params=params, status=201, extra_environ=friend_env).json_body
+        assert_that(res, has_entries({'title': 'go to school'}))
+        EVENT_ID = res['ID']
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            assert_that(IFriendsListCalendar(friends), has_length(1))
+
+        # Read
+        event_url = "%s/%s" % (url, EVENT_ID)
+        self.testapp.get(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.get(event_url, status=403, extra_environ=other_env)
+        self.testapp.get(event_url, status=403, extra_environ=admin_env)
+        self.testapp.get(event_url, status=200, extra_environ=owner_env)
+        self.testapp.get(event_url, status=200, extra_environ=another_friend_env)
+        res = self.testapp.get(event_url, status=200, extra_environ=friend_env).json_body
+        assert_that(res, has_entries({'MimeType': 'application/vnd.nextthought.calendar.friendslistcalendarevent'}))
+
+        # Update event.
+        self.testapp.put_json(event_url, params=params, status=401, extra_environ=anonyous_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=other_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=admin_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=owner_env)
+        self.testapp.put_json(event_url, params=params, status=403, extra_environ=another_friend_env)
+        self.testapp.put_json(event_url, params=params, status=200, extra_environ=friend_env)
+
+        # Delete
+        self.testapp.delete(event_url, status=401, extra_environ=anonyous_env)
+        self.testapp.delete(event_url, status=403, extra_environ=other_env)
+        self.testapp.delete(event_url, status=403, extra_environ=admin_env)
+        self.testapp.delete(event_url, status=403, extra_environ=owner_env)
+        self.testapp.delete(event_url, status=403, extra_environ=another_friend_env)
+        self.testapp.delete(event_url, status=204, extra_environ=friend_env)
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            assert_that(IFriendsListCalendar(friends), has_length(0))
