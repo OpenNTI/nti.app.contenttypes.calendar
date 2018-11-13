@@ -35,13 +35,7 @@ from nti.dataserver.users import Community
 from nti.dataserver.users import DynamicFriendsList
 
 
-class TestDecorators(ApplicationLayerTest):
-
-    def _decorate(self, decorator, context):
-        external = toExternalObject(context, decorate=False)
-        decorator = decorator(context, None)
-        decorator.decorateExternalMapping(context, external)
-        return external
+class TestIndex(ApplicationLayerTest):
 
     @WithMockDSTrans
     def test_not_before_and_after(self):
