@@ -12,3 +12,4 @@ import zope.i18nmessageid
 MessageFactory = zope.i18nmessageid.MessageFactory(__name__)
 
 CONTENTS_VIEW_NAME = u'contents'
+EXPORT_VIEW_NAME = u'export'

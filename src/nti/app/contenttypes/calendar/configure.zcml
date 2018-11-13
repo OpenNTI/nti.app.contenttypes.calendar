@@ -11,12 +11,24 @@
 
 	<include package="nti.contenttypes.calendar" />
 
+    <include package="zope.generations" />
+    <include package="zope.generations" file="subscriber.zcml" />
+
+    <utility factory=".generations.install._CalendarSchemaManager"
+             name="nti.dataserver-app-calendar"
+             provides="zope.generations.interfaces.IInstallableSchemaManager" />
+
+	<!-- adapters -->
+	<adapter factory=".adapters._calendar_event_to_policy_folder"
+			 for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
+			 provides="nti.site.interfaces.IHostPolicyFolder" />
+
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEditLinkDecorator"
 				for="nti.contenttypes.calendar.interfaces.ICalendar pyramid.interfaces.IRequest"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
-	<subscriber factory=".decorators._CalendarEventsLinkDecorator"
+	<subscriber factory=".decorators._CalendarLinkDecorator"
 				for="nti.contenttypes.calendar.interfaces.ICalendar pyramid.interfaces.IRequest"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 

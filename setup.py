@@ -55,6 +55,7 @@ setup(
         'nti.externalization',
         'nti.links',
         'nti.schema',
+        'icalendar',
         'pyramid',
         'zope.i18nmessageid',
         'zope.location',

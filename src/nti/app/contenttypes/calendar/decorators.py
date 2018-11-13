@@ -13,6 +13,7 @@ from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
+from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -44,19 +45,20 @@ class _CalendarEditLinkDecorator(EditLinkDecorator):
 
 @component.adapter(ICalendar)
 @interface.implementer(IExternalObjectDecorator)
-class _CalendarEventsLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _CalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _predicate(self, context, external):
         return has_permission(ACT_READ, context, self.request)
 
     def _do_decorate_external(self, context, external):
         _links = external.setdefault(StandardExternalFields.LINKS, [])
-        _link = Link(context,
-                     rel=CONTENTS_VIEW_NAME,
-                     elements=('@@'+CONTENTS_VIEW_NAME, ),
-                     method='GET')
-        link_belongs_to_context(_link, context)
-        _links.append(_link)
+        for rel in (CONTENTS_VIEW_NAME, EXPORT_VIEW_NAME):
+            _link = Link(context,
+                         rel=rel,
+                         elements=('@@'+rel, ),
+                         method='GET')
+            link_belongs_to_context(_link, context)
+            _links.append(_link)
 
 
 @component.adapter(ICalendarEvent)
