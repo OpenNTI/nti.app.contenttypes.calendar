@@ -8,6 +8,4 @@
 
     <pyramid:scan package=".views" />
 
-    <include package=".entity" file="pyramid.zcml" />
-
 </configure>

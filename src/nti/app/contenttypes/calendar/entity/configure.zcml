@@ -1,0 +1,87 @@
+<!-- -*- mode: nxml -*- -->
+<configure	xmlns="http://namespaces.zope.org/zope"
+			xmlns:i18n="http://namespaces.zope.org/i18n"
+			xmlns:ext="http://nextthought.com/ntp/ext"
+			xmlns:zcml="http://namespaces.zope.org/zcml"
+			i18n_domain="zope">
+
+	<include package="zope.component" file="meta.zcml" />
+	<include package="zope.component" />
+
+    <!-- Traversal -->
+    <adapter name="Calendar"
+             for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+             factory=".adapters._UserCalendarPathAdapter"
+             provides="zope.traversing.interfaces.IPathAdapter"/>
+
+    <adapter name="Calendar"
+             for="nti.dataserver.interfaces.ICommunity pyramid.interfaces.IRequest"
+             factory=".adapters._CommunityCalendarPathAdapter"
+             provides="zope.traversing.interfaces.IPathAdapter"/>
+
+    <adapter name="Calendar"
+             for="nti.dataserver.interfaces.IDynamicSharingTargetFriendsList pyramid.interfaces.IRequest"
+             factory=".adapters._FriendsListCalendarPathAdapter"
+             provides="zope.traversing.interfaces.IPathAdapter"/>
+
+    <subscriber factory=".adapters.UserCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
+    <subscriber factory=".adapters.CommunityCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
+    <subscriber factory=".adapters.FriendsListCalendarEventProvider"
+                provides="nti.contenttypes.calendar.interfaces.ICalendarEventProvider"
+                for="nti.dataserver.interfaces.IUser" />
+
+    <!-- Adapters -->
+    <adapter factory=".adapters._UserCalendarFactory"
+             provides=".interfaces.IUserCalendar"
+             for="nti.dataserver.interfaces.IUser" />
+
+    <adapter factory=".adapters._CommunityCalendarFactory"
+             provides=".interfaces.ICommunityCalendar"
+             for="nti.dataserver.interfaces.ICommunity" />
+
+    <adapter factory=".adapters._FriendsListCalendarFactory"
+             provides=".interfaces.IFriendsListCalendar"
+             for="nti.dataserver.interfaces.IDynamicSharingTargetFriendsList" />
+
+    <!-- decorators -->
+    <subscriber factory=".decorators._UserCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators._MyCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators._CommunityCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.ICommunity pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators._FriendsListCalendarLinkDecorator"
+                for="nti.dataserver.interfaces.IDynamicSharingTargetFriendsList pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <!-- acl -->
+    <adapter factory=".acl._CommunityCalendarACLProvider"
+             for=".interfaces.ICommunityCalendar"
+             provides="nti.dataserver.interfaces.IACLProvider"/>
+
+    <adapter factory=".acl._FriendsListCalendarACLProvider"
+             for=".interfaces.IFriendsListCalendar"
+             provides="nti.dataserver.interfaces.IACLProvider"/>
+
+    <ext:registerAutoPackageIO
+        root_interfaces=".interfaces.IUserCalendar
+                         .interfaces.IUserCalendarEvent
+                         .interfaces.ICommunityCalendar
+                         .interfaces.ICommunityCalendarEvent
+                         .interfaces.IFriendsListCalendar
+                         .interfaces.IFriendsListCalendarEvent"
+        modules=".model" />
+
+</configure>
