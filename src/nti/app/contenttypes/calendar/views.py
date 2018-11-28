@@ -21,6 +21,12 @@ from requests.structures import CaseInsensitiveDict
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+from nti.app.base.abstract_views import get_all_sources
+from nti.app.base.abstract_views import get_safe_source_filename
+
+from nti.app.contentfile import validate_sources
+
+from nti.app.contentfolder.resources import is_internal_file_link
 
 from nti.app.externalization.error import raise_json_error
 
@@ -50,11 +56,44 @@ from . import CONTENTS_VIEW_NAME
 class CalendarEventCreationView(AbstractAuthenticatedView,
                                 ModeledContentUploadRequestUtilsMixin):
 
+    calendar_event_iface = ICalendarEvent
+
+    @Lazy
+    def filer(self):
+        return None
+
+    def _handle_multipart(self, contentObject, sources):
+        if self.filer is None:
+            return
+
+        for name, source in sources.items():
+            if name in self.calendar_event_iface:
+                # remove existing
+                location = getattr(contentObject, name, None)
+                if location and is_internal_file_link(location):
+                    self.filer.remove(location)
+
+                # save a in a new file
+                key = get_safe_source_filename(source, name)
+                location = self.filer.save(key, source,
+                                           overwrite=False,
+                                           structure=True,
+                                           context=contentObject)
+
+                setattr(contentObject, name, location)
+
     def __call__(self):
-        event = self.readCreateUpdateContentObject(self.remoteUser)
-        self.context.store_event(event)
+        contentObject = self.readCreateUpdateContentObject(self.remoteUser)
+        self.context.store_event(contentObject)
+
+        # multi-part data
+        sources = get_all_sources(self.request)
+        if sources:
+            validate_sources(self.remoteUser, contentObject, sources)
+            self._handle_multipart(contentObject, sources)
+
         self.request.response.status_int = 201
-        return event
+        return contentObject
 
 
 @view_config(route_name='objects.generic.traversal',
