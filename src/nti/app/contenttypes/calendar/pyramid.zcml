@@ -8,8 +8,6 @@
 
     <pyramid:scan package=".views" />
 
-    <configure zcml:condition="have testmode">
-        <include package=".entity" file="pyramid.zcml" />
-    </configure>
+    <include package=".entity" file="pyramid.zcml" />
 
 </configure>

@@ -8,6 +8,8 @@
 	<include package="zope.component" file="meta.zcml" />
 	<include package="zope.component" />
 
+<!-- hide entity related calendars -->
+<configure zcml:condition="have testmode">
     <!-- Traversal -->
     <adapter name="Calendar"
              for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
@@ -83,5 +85,6 @@
                          .interfaces.IFriendsListCalendar
                          .interfaces.IFriendsListCalendarEvent"
         modules=".model" />
+</configure>
 
 </configure>
