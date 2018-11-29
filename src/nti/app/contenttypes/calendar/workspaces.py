@@ -8,21 +8,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-logger = __import__('logging').getLogger(__name__)
-
 from zope import component
 from zope import interface
 
 from zope.container.contained import Contained
 
 from nti.app.contenttypes.calendar import CALENDARS
-from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
+from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 from nti.appserver.workspaces.interfaces import IUserWorkspace
 
 from nti.links.links import Link
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @interface.implementer(ICalendarCollection)
@@ -45,8 +45,8 @@ class CalendarCollection(Contained):
     def links(self):
         result = []
         result.append( Link(self.user,
-                            rel=CONTENTS_VIEW_NAME,
-                            elements=(self.__name__, '@@'+CONTENTS_VIEW_NAME,),
+                            rel=EVENTS_VIEW_NAME,
+                            elements=(self.__name__, '@@'+EVENTS_VIEW_NAME,),
                             method='GET'))
         return result
 

@@ -14,3 +14,5 @@ MessageFactory = zope.i18nmessageid.MessageFactory(__name__)
 CALENDARS = u'Calendars'
 
 CONTENTS_VIEW_NAME = u'contents'
+
+EVENTS_VIEW_NAME = u'events'

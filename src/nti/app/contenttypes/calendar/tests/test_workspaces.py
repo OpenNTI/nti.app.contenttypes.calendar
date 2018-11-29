@@ -7,19 +7,11 @@ from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
 
-import fudge
-
-from hamcrest import has_entries
+from hamcrest import is_
 from hamcrest import has_length
 from hamcrest import assert_that
-from hamcrest import is_
-from hamcrest import none
-
-from zope import component
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
-
-from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.appserver.workspaces import UserService
 
@@ -47,5 +39,5 @@ class TestWorkspaces(ApplicationLayerTest):
             external = toExternalObject(workspace)
 
             result = self.require_collection_with_title(external, 'Calendars')
-            link = self.require_link_href_with_rel(result, 'contents')
-            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@contents'))
+            link = self.require_link_href_with_rel(result, 'events')
+            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@events'))
