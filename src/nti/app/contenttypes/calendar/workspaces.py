@@ -27,7 +27,6 @@ from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar.entity import MY_CALENDAR_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
-from nti.app.contenttypes.calendar.interfaces import ICalendarWorkspace
 
 from nti.appserver.workspaces.interfaces import IUserService
 from nti.appserver.workspaces.interfaces import IUserWorkspace
@@ -45,7 +44,7 @@ from nti.property.property import alias
 class _CalendarCollection(Contained):
 
     name = CALENDARS
-    __name__ = ''
+    __name__ = CALENDARS
 
     accepts = ()
 
@@ -64,32 +63,3 @@ class _CalendarCollection(Contained):
                             elements=('@@'+MY_CALENDAR_VIEW_NAME,),
                             method='GET'))
         return result
-
-
-@interface.implementer(ICalendarWorkspace, IContained)
-class _CalendarWorkspace(Contained):
-
-    __name__ = CALENDARS
-
-    name = alias('__name__', __name__)
-
-    links = ()
-
-    def __init__(self, user_service):
-        self.context = user_service
-        self.user = user_service.user
-
-    def __len__(self):
-        return len(self.collections)
-
-    @Lazy
-    def collections(self):
-        return (_CalendarCollection(self), )
-
-
-@interface.implementer(IUserWorkspace)
-@component.adapter(IUserService)
-def CalendarWorkspace(user_service):
-    workspace = _CalendarWorkspace(user_service)
-    workspace.__parent__ = workspace.user
-    return workspace

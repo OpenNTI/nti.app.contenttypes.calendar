@@ -17,8 +17,6 @@ from hamcrest import none
 
 from zope import component
 
-from nti.app.contenttypes.calendar.interfaces import ICalendarWorkspace
-
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
@@ -45,10 +43,8 @@ class TestWorkspaces(ApplicationLayerTest):
         user = User.create_user(dataserver=self.ds, username='sjohnson@nextthought.com')
         with mock_dataserver.mock_db_trans(self.ds):
             service = UserService(user)
-            workspace = [workspace for workspace in service.workspaces if ICalendarWorkspace.providedBy(workspace)][0]
+            workspace = [workspace for workspace in service.workspaces if workspace.name=='sjohnson@nextthought.com'][0]
             external = toExternalObject(workspace)
-
-            assert_that(external, has_entries('Title', 'calendars'))
 
             result = self.require_collection_with_title(external, 'calendars')
             link = self.require_link_href_with_rel(result, 'MyCalendar')

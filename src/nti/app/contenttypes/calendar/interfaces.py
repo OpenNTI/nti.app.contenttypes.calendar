@@ -23,12 +23,6 @@ class ICalendarACLProvider(IACLProvider):
     """
 
 
-class ICalendarWorkspace(IWorkspace):
-    """
-    A workspace containing data for calendar collections.
-    """
-
-
 class ICalendarCollection(ICollection):
     """
     A collection containing data for calendar events.
