@@ -10,7 +10,6 @@ from __future__ import absolute_import
 
 # pylint: disable=inherit-non-class,expression-not-assigned
 
-from nti.appserver.workspaces.interfaces import IWorkspace
 from nti.appserver.workspaces.interfaces import ICollection
 
 from nti.dataserver.interfaces import IACLProvider
