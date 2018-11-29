@@ -290,5 +290,7 @@ class CalendarCollectionView(AbstractAuthenticatedView,
     def __call__(self):
         result = to_external_object(self.context)
         result[TOTAL] = len(result[ITEMS])
-        self._batch_items_iterable(result, result[ITEMS])
+        self._batch_items_iterable(result,
+                                   result[ITEMS],
+                                   number_items_needed=result[TOTAL])
         return result
