@@ -48,15 +48,9 @@ from nti.externalization.interfaces import StandardExternalFields
 from . import CONTENTS_VIEW_NAME
 
 
-@view_config(route_name='objects.generic.traversal',
-             renderer="rest",
-             request_method='POST',
-             context=ICalendar,
-             permission=nauth.ACT_CREATE)
-class CalendarEventCreationView(AbstractAuthenticatedView,
-                                ModeledContentUploadRequestUtilsMixin):
+class MultiPartHandleMixin(object):
 
-    calendar_event_iface = ICalendarEvent
+    _iface_provided = ICalendarEvent
 
     @Lazy
     def filer(self):
@@ -67,7 +61,7 @@ class CalendarEventCreationView(AbstractAuthenticatedView,
             return
 
         for name, source in sources.items():
-            if name in self.calendar_event_iface:
+            if name in self._iface_provided:
                 # remove existing
                 location = getattr(contentObject, name, None)
                 if location and is_internal_file_link(location):
@@ -79,8 +73,17 @@ class CalendarEventCreationView(AbstractAuthenticatedView,
                                            overwrite=False,
                                            structure=True,
                                            context=contentObject)
-
                 setattr(contentObject, name, location)
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer="rest",
+             request_method='POST',
+             context=ICalendar,
+             permission=nauth.ACT_CREATE)
+class CalendarEventCreationView(AbstractAuthenticatedView,
+                                ModeledContentUploadRequestUtilsMixin,
+                                MultiPartHandleMixin):
 
     def __call__(self):
         contentObject = self.readCreateUpdateContentObject(self.remoteUser)
@@ -110,8 +113,18 @@ def get_calendar_event(event, request):
              context=ICalendarEvent,
              request_method='PUT',
              permission=nauth.ACT_UPDATE)
-class CalendarEventUpdateView(UGDPutView):
-    pass
+class CalendarEventUpdateView(UGDPutView, MultiPartHandleMixin):
+
+    def __call__(self):
+        contentObject = super(CalendarEventUpdateView, self).__call__()
+
+        # multi-part data
+        sources = get_all_sources(self.request)
+        if sources:
+            validate_sources(self.remoteUser, contentObject, sources)
+            self._handle_multipart(contentObject, sources)
+
+        return contentObject
 
 
 @view_config(route_name='objects.generic.traversal',
