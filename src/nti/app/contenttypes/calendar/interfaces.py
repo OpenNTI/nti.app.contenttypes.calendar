@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 # pylint: disable=inherit-non-class,expression-not-assigned
 
-from nti.appserver.workspaces.interfaces import ICollection
+from nti.appserver.workspaces.interfaces import IContainerCollection
 
 from nti.dataserver.interfaces import IACLProvider
 
@@ -22,7 +22,7 @@ class ICalendarACLProvider(IACLProvider):
     """
 
 
-class ICalendarCollection(ICollection):
+class ICalendarCollection(IContainerCollection):
     """
     A collection containing data for calendar events.
     """

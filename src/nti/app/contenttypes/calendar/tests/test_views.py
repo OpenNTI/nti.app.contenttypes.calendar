@@ -10,7 +10,6 @@ from __future__ import absolute_import
 from hamcrest import is_
 from hamcrest import contains
 from hamcrest import not_none
-from hamcrest import has_entry
 from hamcrest import has_entries
 from hamcrest import has_length
 from hamcrest import has_properties
@@ -19,7 +18,6 @@ from hamcrest import assert_that
 from datetime import datetime
 
 from zope import interface
-from zope import component
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
@@ -31,8 +29,6 @@ from nti.contenttypes.calendar.model import CalendarEvent
 from nti.coremetadata.interfaces import IContained
 
 from nti.dataserver.tests import mock_dataserver
-
-from nti.dataserver.users.users import User
 
 from nti.dataserver.authorization import ROLE_ADMIN
 

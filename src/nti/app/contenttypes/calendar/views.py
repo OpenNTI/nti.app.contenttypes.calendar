@@ -7,6 +7,7 @@
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
+from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -28,14 +29,14 @@ from nti.app.contentfile import validate_sources
 
 from nti.app.contentfolder.resources import is_internal_file_link
 
+from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
+
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.appserver.ugd_edit_views import UGDPutView
-
-from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
@@ -45,7 +46,10 @@ from nti.dataserver import authorization as nauth
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
-from . import CONTENTS_VIEW_NAME
+from nti.externalization.externalization import to_external_object
+
+ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
 
 
 class MultiPartHandleMixin(object):
@@ -265,3 +269,26 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
                                  'message': str(e),
                              },
                              None)
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarCollection,
+             permission=nauth.ACT_READ,
+             request_method='GET')
+class CalendarCollectionView(AbstractAuthenticatedView,
+                             BatchingUtilsMixin):
+    """
+    A generic :class:`ICalendarCollection` view that supports paging on the
+    collection.
+    """
+
+    #: To maintain BWC; disable paging by default.
+    _DEFAULT_BATCH_SIZE = None
+    _DEFAULT_BATCH_START = None
+
+    def __call__(self):
+        result = to_external_object(self.context)
+        result[TOTAL] = len(result[ITEMS])
+        self._batch_items_iterable(result, result[ITEMS])
+        return result
