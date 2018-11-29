@@ -26,4 +26,9 @@
 
 	<include package=".entity" file="configure.zcml" />
 
+	<!-- Workspaces -->
+	<subscriber factory=".workspaces._CalendarCollection"
+				provides=".interfaces.ICalendarCollection"
+				for="nti.appserver.workspaces.interfaces.IUserWorkspace" />
+
 </configure>
