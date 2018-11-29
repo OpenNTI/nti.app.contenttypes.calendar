@@ -26,4 +26,11 @@
 
 	<include package=".entity" file="configure.zcml" />
 
+	<!-- Workspaces -->
+	<subscriber factory=".workspaces.CalendarWorkspace"
+				provides=".interfaces.ICalendarWorkspace" />
+
+	<adapter factory=".workspaces.CalendarWorkspace"
+			 provides=".interfaces.ICalendarWorkspace" />
+
 </configure>
