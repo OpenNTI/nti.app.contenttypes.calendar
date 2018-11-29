@@ -102,7 +102,7 @@ class UserCalendarEventProvider(object):
     def __init__(self, user):
         self.user = user
 
-    def iter_events(self):
+    def iter_events(self, **kwargs):
         result = []
         calendar = ICalendar(self.user, None)
         if calendar is not None:
@@ -117,7 +117,7 @@ class CommunityCalendarEventProvider(object):
     def __init__(self, user):
         self.user = user
 
-    def iter_events(self):
+    def iter_events(self, **kwargs):
         result = []
         for community in self._communities(self.user):
             calendar = ICalendar(community, None)
@@ -140,7 +140,7 @@ class FriendsListCalendarEventProvider(object):
     def __init__(self, user):
         self.user = user
 
-    def iter_events(self):
+    def iter_events(self, **kwargs):
         result = []
         for group in self._groups(self.user):
             calendar = ICalendar(group, None)

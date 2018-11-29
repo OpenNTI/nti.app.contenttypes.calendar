@@ -36,10 +36,17 @@ class UserCompositeCalendarView(CalendarContentsGetView):
     Return all calendar events from user, community, groups and enrolled courses.
     """
 
+    def _context_ntiids(self):
+        ntiid = self._params.get('context_ntiid')
+        return [ntiid] if ntiid else None
+
     def get_source_items(self):
         items = []
+
+        context_ntiids = self._context_ntiids()
+
         providers = component.subscribers((self.context.user,),
                                           ICalendarEventProvider)
         for x in providers or ():
-            items.extend(x.iter_events())
+            items.extend(x.iter_events(context_ntiids=context_ntiids))
         return items
