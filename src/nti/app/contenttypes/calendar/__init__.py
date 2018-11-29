@@ -11,6 +11,6 @@ from __future__ import absolute_import
 import zope.i18nmessageid
 MessageFactory = zope.i18nmessageid.MessageFactory(__name__)
 
-CALENDARS = u'calendars'
+CALENDARS = u'Calendars'
 
 CONTENTS_VIEW_NAME = u'contents'

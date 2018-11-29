@@ -47,7 +47,7 @@ class TestDecorators(ApplicationLayerTest):
         mock_has_permission.is_callable().returns(True)
         user = self._create_user(u'test001')
         external = self._decorate(_MyCalendarLinkDecorator, user)
-        links = [x.rel for x in external['Links'] if x.rel == 'MyCalendar']
+        links = [x.rel for x in external['Links'] if x.rel == 'contents']
         assert_that(links, has_length(1))
 
     @WithMockDSTrans

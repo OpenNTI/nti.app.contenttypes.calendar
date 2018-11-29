@@ -16,8 +16,7 @@ from zope import interface
 from zope.container.contained import Contained
 
 from nti.app.contenttypes.calendar import CALENDARS
-
-from nti.app.contenttypes.calendar.entity import MY_CALENDAR_VIEW_NAME
+from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
@@ -28,25 +27,29 @@ from nti.links.links import Link
 
 @interface.implementer(ICalendarCollection)
 @component.adapter(IUserWorkspace)
-class _CalendarCollection(Contained):
+class CalendarCollection(Contained):
 
     name = CALENDARS
     __name__ = CALENDARS
 
     accepts = ()
 
-    def __init__(self, user_workspace):
-        self.__parent__ = user_workspace
+    def __init__(self, user):
+        self.__parent__ = user
 
     @property
     def user(self):
-        return getattr(self.__parent__, 'user', None)
+        return self.__parent__
 
     @property
     def links(self):
         result = []
         result.append( Link(self.user,
-                            rel=MY_CALENDAR_VIEW_NAME,
-                            elements=('@@'+MY_CALENDAR_VIEW_NAME,),
+                            rel=CONTENTS_VIEW_NAME,
+                            elements=(self.__name__, '@@'+CONTENTS_VIEW_NAME,),
                             method='GET'))
         return result
+
+
+def _calendar_collection_factory(user_workspace):
+    return CalendarCollection(user_workspace.user)

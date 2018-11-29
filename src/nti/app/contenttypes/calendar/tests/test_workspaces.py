@@ -46,6 +46,6 @@ class TestWorkspaces(ApplicationLayerTest):
             workspace = [workspace for workspace in service.workspaces if workspace.name=='sjohnson@nextthought.com'][0]
             external = toExternalObject(workspace)
 
-            result = self.require_collection_with_title(external, 'calendars')
-            link = self.require_link_href_with_rel(result, 'MyCalendar')
-            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/@@MyCalendar'))
+            result = self.require_collection_with_title(external, 'Calendars')
+            link = self.require_link_href_with_rel(result, 'contents')
+            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@contents'))
