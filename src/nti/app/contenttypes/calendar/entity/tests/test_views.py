@@ -298,7 +298,7 @@ class TestUserCompositeCalendarView(CalendarLayerTest):
         group_memeber_env = self._make_extra_environ(username=u'group_memeber001')
         admin_env = self._make_extra_environ(username=u'admin001@nextthought.com')
 
-        url = '/dataserver2/users/owner001/@@MyCalendar'
+        url = '/dataserver2/users/owner001/Calendars/@@contents'
         self.testapp.get(url, status=403, extra_environ=admin_env)
         self.testapp.get(url, status=403, extra_environ=community_member_env)
         self.testapp.get(url, status=403, extra_environ=group_memeber_env)
@@ -340,24 +340,24 @@ class TestUserCompositeCalendarView(CalendarLayerTest):
         assert_that([x['title'] for x in result['Items']], contains_inanyorder(u'myself', u'community event title', u'group event title'))
 
         # community memeber
-        url = '/dataserver2/users/community_member001/@@MyCalendar'
+        url = '/dataserver2/users/community_member001/Calendars/@@contents'
         result = self.testapp.get(url, status=200, extra_environ=community_member_env).json_body
         assert_that(result, has_entries({'Total': 2, 'Items': has_length(2)}))
         assert_that([x['title'] for x in result['Items']], contains_inanyorder(u'community_member_self', u'community event title'))
 
         # group member
-        url = '/dataserver2/users/group_memeber001/@@MyCalendar'
+        url = '/dataserver2/users/group_memeber001/Calendars/@@contents'
         result = self.testapp.get(url, status=200, extra_environ=group_memeber_env).json_body
         assert_that(result, has_entries({'Total': 2, 'Items': has_length(2)}))
         assert_that([x['title'] for x in result['Items']], contains_inanyorder(u'group_member_self', u'group event title'))
 
         # admin(community member)
-        url = '/dataserver2/users/admin001@nextthought.com/@@MyCalendar'
+        url = '/dataserver2/users/admin001@nextthought.com/Calendars/@@contents'
         result = self.testapp.get(url, status=200, extra_environ=admin_env).json_body
         assert_that(result, has_entries({'Total': 1, 'Items': has_length(1)}))
         assert_that([x['title'] for x in result['Items']], contains_inanyorder(u'community event title'))
 
         # other user, nothing
-        url = '/dataserver2/users/other/@@MyCalendar'
+        url = '/dataserver2/users/other/Calendars/@@contents'
         result = self.testapp.get(url, status=200, extra_environ=self._make_extra_environ(username=u'other')).json_body
         assert_that(result, has_entries({'Total': 0, 'Items': has_length(0)}))
