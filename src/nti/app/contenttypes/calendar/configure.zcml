@@ -12,7 +12,8 @@
 	<include package="nti.contenttypes.calendar" />
 
 	<adapter name="Calendars"
-			 for="nti.dataserver.interfaces.IUser pyramid.interfaces.IRequest"
+			 for="nti.dataserver.interfaces.IUser
+			      pyramid.interfaces.IRequest"
 			 factory=".traversal.calendar_collection_path_adapter"
 			 provides="zope.traversing.interfaces.IPathAdapter" />
 
