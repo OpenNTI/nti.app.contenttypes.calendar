@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 # pylint: disable=inherit-non-class,expression-not-assigned
 
+from nti.appserver.workspaces.interfaces import IContainerCollection
+
 from nti.dataserver.interfaces import IACLProvider
 
 
@@ -17,4 +19,10 @@ class ICalendarACLProvider(IACLProvider):
     """
     An ACL provider giving permissions beneath an ICalendar.
     Typically adapted from (ICalendar, *)
+    """
+
+
+class ICalendarCollection(IContainerCollection):
+    """
+    A collection containing data for calendar events.
     """

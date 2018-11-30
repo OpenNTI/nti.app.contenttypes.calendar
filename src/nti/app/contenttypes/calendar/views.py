@@ -7,6 +7,7 @@
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
+from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -21,6 +22,14 @@ from requests.structures import CaseInsensitiveDict
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+from nti.app.base.abstract_views import get_all_sources
+from nti.app.base.abstract_views import get_safe_source_filename
+
+from nti.app.contentfile import validate_sources
+
+from nti.app.contentfolder.resources import is_internal_file_link
+
+from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 
 from nti.app.externalization.error import raise_json_error
 
@@ -28,8 +37,6 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.appserver.ugd_edit_views import UGDPutView
-
-from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
@@ -39,7 +46,38 @@ from nti.dataserver import authorization as nauth
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
-from . import CONTENTS_VIEW_NAME
+from nti.externalization.externalization import to_external_object
+
+ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
+
+
+class MultiPartHandleMixin(object):
+
+    _iface_provided = ICalendarEvent
+
+    @Lazy
+    def filer(self):
+        return None
+
+    def _handle_multipart(self, contentObject, sources):
+        if self.filer is None:
+            return
+
+        for name, source in sources.items():
+            if name in self._iface_provided:
+                # remove existing
+                location = getattr(contentObject, name, None)
+                if location and is_internal_file_link(location):
+                    self.filer.remove(location)
+
+                # save a in a new file
+                key = get_safe_source_filename(source, name)
+                location = self.filer.save(key, source,
+                                           overwrite=False,
+                                           structure=True,
+                                           context=contentObject)
+                setattr(contentObject, name, location)
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -48,13 +86,21 @@ from . import CONTENTS_VIEW_NAME
              context=ICalendar,
              permission=nauth.ACT_CREATE)
 class CalendarEventCreationView(AbstractAuthenticatedView,
-                                ModeledContentUploadRequestUtilsMixin):
+                                ModeledContentUploadRequestUtilsMixin,
+                                MultiPartHandleMixin):
 
     def __call__(self):
-        event = self.readCreateUpdateContentObject(self.remoteUser)
-        self.context.store_event(event)
+        contentObject = self.readCreateUpdateContentObject(self.remoteUser)
+        self.context.store_event(contentObject)
+
+        # multi-part data
+        sources = get_all_sources(self.request)
+        if sources:
+            validate_sources(self.remoteUser, contentObject, sources)
+            self._handle_multipart(contentObject, sources)
+
         self.request.response.status_int = 201
-        return event
+        return contentObject
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -71,8 +117,18 @@ def get_calendar_event(event, request):
              context=ICalendarEvent,
              request_method='PUT',
              permission=nauth.ACT_UPDATE)
-class CalendarEventUpdateView(UGDPutView):
-    pass
+class CalendarEventUpdateView(UGDPutView, MultiPartHandleMixin):
+
+    def __call__(self):
+        contentObject = super(CalendarEventUpdateView, self).__call__()
+
+        # multi-part data
+        sources = get_all_sources(self.request)
+        if sources:
+            validate_sources(self.remoteUser, contentObject, sources)
+            self._handle_multipart(contentObject, sources)
+
+        return contentObject
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -213,3 +269,28 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
                                  'message': str(e),
                              },
                              None)
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarCollection,
+             permission=nauth.ACT_READ,
+             request_method='GET')
+class CalendarCollectionView(AbstractAuthenticatedView,
+                             BatchingUtilsMixin):
+    """
+    A generic :class:`ICalendarCollection` view that supports paging on the
+    collection.
+    """
+
+    #: To maintain BWC; disable paging by default.
+    _DEFAULT_BATCH_SIZE = None
+    _DEFAULT_BATCH_START = None
+
+    def __call__(self):
+        result = to_external_object(self.context)
+        result[TOTAL] = len(result[ITEMS])
+        self._batch_items_iterable(result,
+                                   result[ITEMS],
+                                   number_items_needed=result[TOTAL])
+        return result

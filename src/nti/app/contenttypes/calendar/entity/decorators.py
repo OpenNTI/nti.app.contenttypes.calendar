@@ -12,7 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.app.contenttypes.calendar.entity import MY_CALENDAR_VIEW_NAME
+from nti.app.contenttypes.calendar.entity import CALENDARS
+from nti.app.contenttypes.calendar.entity import CONTENTS_VIEW_NAME
 
 from nti.app.contenttypes.calendar.entity.interfaces import IUserCalendar
 from nti.app.contenttypes.calendar.entity.interfaces import ICommunityCalendar
@@ -64,8 +65,8 @@ class _MyCalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
     def _do_decorate_external(self, context, external):
         _links = external.setdefault(StandardExternalFields.LINKS, [])
         _link = Link(context,
-                     rel=MY_CALENDAR_VIEW_NAME,
-                     elements=('@@'+MY_CALENDAR_VIEW_NAME,),
+                     rel=CONTENTS_VIEW_NAME,
+                     elements=(CALENDARS, '@@'+CONTENTS_VIEW_NAME),
                     method='GET')
         link_belongs_to_context(_link, context)
         _links.append(_link)
