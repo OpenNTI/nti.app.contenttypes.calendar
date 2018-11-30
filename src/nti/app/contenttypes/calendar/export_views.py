@@ -20,19 +20,11 @@ from icalendar import vDatetime
 
 from io import BytesIO
 
-from pyramid import httpexceptions as hexc
-
 from pyramid.view import view_config
-
-from requests.structures import CaseInsensitiveDict
-
-from zope.cachedescriptors.property import Lazy
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
-
-from nti.app.externalization.error import raise_json_error
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 
