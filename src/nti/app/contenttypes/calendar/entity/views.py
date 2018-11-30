@@ -37,16 +37,21 @@ class UserCompositeCalendarView(CalendarContentsGetView):
     """
 
     def _context_ntiids(self):
-        ntiid = self._params.get('context_ntiid')
-        return [ntiid] if ntiid else None
+        result = self.request.params.getall('context_ntiids')
+        return [x for x in result or () if x]
+
+    def _excluded_context_ntiids(self):
+        result = self.request.params.getall('excluded_context_ntiids')
+        return [x for x in result or () if x]
 
     def get_source_items(self):
         items = []
-
         context_ntiids = self._context_ntiids()
+        excluded_context_ntiids = self._excluded_context_ntiids()
 
         providers = component.subscribers((self.context.user,),
                                           ICalendarEventProvider)
         for x in providers or ():
-            items.extend(x.iter_events(context_ntiids=context_ntiids))
+            items.extend(x.iter_events(context_ntiids=context_ntiids,
+                                       excluded_context_ntiids=excluded_context_ntiids))
         return items
