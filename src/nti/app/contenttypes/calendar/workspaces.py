@@ -15,6 +15,8 @@ from zope.cachedescriptors.property import Lazy
 
 from zope.container.contained import Contained
 
+from zope.security.interfaces import IPrincipal
+
 from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
 
@@ -23,6 +25,14 @@ from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 from nti.appserver.workspaces.interfaces import IUserWorkspace
 
 from nti.contenttypes.calendar.interfaces import ICalendarProvider
+
+from nti.dataserver.authorization import ROLE_ADMIN
+
+from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.externalization.interfaces import LocatedExternalList
 
@@ -46,6 +56,14 @@ class CalendarCollection(Contained):
     @property
     def user(self):
         return self.__parent__
+
+    @Lazy
+    def __acl__(self):
+        # Only the user has access to this calendar
+        aces = [ace_allowing(IPrincipal(self.user), ALL_PERMISSIONS, type(self)),
+                ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self))]
+        aces.append(ACE_DENY_ALL)
+        return acl_from_aces(aces)
 
     @Lazy
     def calendars(self):

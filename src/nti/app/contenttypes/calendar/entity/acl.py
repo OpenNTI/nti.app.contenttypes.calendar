@@ -28,7 +28,7 @@ from nti.dataserver.authorization_acl import ace_allowing
 
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
-from nti.dataserver.interfaces import AUTHENTICATED_GROUP_NAME
+
 from nti.dataserver.interfaces import IACLProvider
 
 
