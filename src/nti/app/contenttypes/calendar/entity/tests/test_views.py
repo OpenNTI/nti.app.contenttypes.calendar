@@ -289,7 +289,7 @@ class TestUserCompositeCalendarView(CalendarLayerTest):
         admin_env = self._make_extra_environ(username=u'admin001@nextthought.com')
 
         url = '/dataserver2/users/owner001/Calendars/@@events'
-        self.testapp.get(url, status=403, extra_environ=admin_env)
+        self.testapp.get(url, extra_environ=admin_env)
         self.testapp.get(url, status=403, extra_environ=community_member_env)
         self.testapp.get(url, status=403, extra_environ=group_memeber_env)
         self.testapp.get(url, status=401, extra_environ=self._make_extra_environ(username=None))
