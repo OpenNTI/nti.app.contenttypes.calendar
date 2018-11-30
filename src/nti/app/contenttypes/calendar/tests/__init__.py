@@ -23,7 +23,7 @@ class SharedConfiguringTestLayer(ZopeComponentLayer,
                                  ConfiguringLayerMixin,
                                  DSInjectorMixin):
 
-    set_up_packages = ('nti.app.contenttypes.calendar',)
+    set_up_packages = ('nti.dataserver', 'nti.app.contenttypes.calendar',)
 
     @classmethod
     def setUp(cls):

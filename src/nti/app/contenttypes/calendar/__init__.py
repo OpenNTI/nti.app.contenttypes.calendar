@@ -15,4 +15,6 @@ CALENDARS = u'Calendars'
 
 CONTENTS_VIEW_NAME = u'contents'
 
+EXPORT_VIEW_NAME = u'export'
+
 EVENTS_VIEW_NAME = u'events'
