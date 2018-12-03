@@ -18,6 +18,9 @@
              name="nti.dataserver-app-calendar"
              provides="zope.generations.interfaces.IInstallableSchemaManager" />
 
+    <!-- Adapters -->
+    <adapter factory=".adapters.calendar_event_to_calendar" />
+
 	<adapter name="Calendars"
 			 for="nti.dataserver.interfaces.IUser
 			      pyramid.interfaces.IRequest"
@@ -25,6 +28,10 @@
 			 provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<!-- decorators -->
+	<subscriber factory=".decorators._CalendarEventDecorator"
+                for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
+                provides="nti.externalization.interfaces.IExternalMappingDecorator" />
+
 	<subscriber factory=".decorators._CalendarEditLinkDecorator"
 				for="nti.contenttypes.calendar.interfaces.ICalendar pyramid.interfaces.IRequest"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />

@@ -29,8 +29,11 @@ from nti.contenttypes.calendar.interfaces import ICalendarEvent
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization import ACT_UPDATE
 
-from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.interfaces import IExternalObjectDecorator
+from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.externalization.singleton import Singleton
 
 from nti.links.links import Link
 
@@ -67,3 +70,12 @@ class _CalendarEventEditLinkDecorator(EditLinkDecorator):
 
     def _has_permission(self, context):
         return has_permission(ACT_UPDATE, context, self.request)
+
+
+@component.adapter(ICalendarEvent)
+@interface.implementer(IExternalMappingDecorator)
+class _CalendarEventDecorator(Singleton):
+
+    def decorateExternalMapping(self, context, result):
+        calendar = ICalendar(context, None)
+        result['ContainerId'] = getattr(calendar, 'ntiid', None)
