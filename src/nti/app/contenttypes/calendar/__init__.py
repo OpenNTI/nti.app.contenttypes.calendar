@@ -18,3 +18,5 @@ CONTENTS_VIEW_NAME = u'contents'
 EXPORT_VIEW_NAME = u'export'
 
 EVENTS_VIEW_NAME = u'events'
+
+TODAY_EVENTS_VIEW_NAME = u'TodaysEvents'
