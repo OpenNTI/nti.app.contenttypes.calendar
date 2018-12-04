@@ -340,16 +340,19 @@ class CalendarTodayEventsView(AbstractAuthenticatedView,
         notAfter = notBefore + 24*60*60 - 1
         return notBefore, notAfter
 
+    def _include_event(self, event, notBefore, notAfter):
+        return (notBefore <= event.start_time and event.start_time <= notAfter) \
+                or  (event.end_time is not None and notBefore <= event.end_time and event.end_time <= notAfter) \
+                or  (event.end_time is not None and event.start_time < notBefore and notAfter < event.end_time)
+
     def _dynamic_events(self, user, notBefore, notAfter):
         res = []
         providers = component.subscribers((user, ),
                                           ICalendarDynamicEventProvider)
         for provider in providers or ():
             for x in provider.iter_events():
-                # like index query, we won't return events that end_time is None and start_time is less than notBefore.
-                if      (notBefore <= x.start_time and x.start_time <= notAfter) \
-                    or  (x.end_time is not None and notBefore <= x.end_time and x.end_time <= notAfter) \
-                    or  (x.end_time is not None and x.start_time < notBefore and notAfter < x.end_time):
+                # like index query, we won't return events that end_time is None and start_time < notBefore.
+                if self._include_event(x, notBefore, notAfter):
                     res.append(x)
         return res
 

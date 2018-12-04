@@ -39,11 +39,25 @@ class TestIndex(ApplicationLayerTest):
 
     @WithMockDSTrans
     def test_not_before_and_after(self):
+        def _adjust_ts(ts):
+            return datetime.fromtimestamp(ts)
+
         community = Community.create_community(self.ds, username=u'test001')
         calendar =ICalendar(community)
-        event = calendar.store_event(CommunityCalendarEvent(title=u'one',
-                                                            start_time=datetime.utcfromtimestamp(1541635200), # 2018-11-08T00:00:00Z
-                                                            end_time=datetime.utcfromtimestamp(1541721600))) # 2018-11-09T00:00:00Z
+        event1 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1000), end_time=_adjust_ts(1100)))
+        event2 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1000), end_time=_adjust_ts(1200)))
+        event3 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1000), end_time=_adjust_ts(3600)))
+        event4 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1199), end_time=_adjust_ts(3660)))
+        event5 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1199), end_time=None))
+
+        event6 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1200), end_time=_adjust_ts(2500)))
+        event7 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1600), end_time=_adjust_ts(3600)))
+        event8 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=_adjust_ts(3660)))
+        event9 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=_adjust_ts(4000)))
+        event10 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=None))
+
+        event11 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3660), end_time=_adjust_ts(4000)))
+        event12 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3660), end_time=None))
 
         result = get_indexed_calendar_events()
         assert_that(result, has_length(0))
@@ -51,24 +65,34 @@ class TestIndex(ApplicationLayerTest):
         # normalizing to mins.
         # if we change below params notBefore/notAfter to be timestamp
         # it may fail in the non-utc environment.
-        result = get_indexed_calendar_events(notBefore=datetime.utcfromtimestamp(1541721600))
-        assert_that(result, contains_inanyorder(event))
 
-        result = get_indexed_calendar_events(notBefore=datetime.utcfromtimestamp(1541721659))
-        assert_that(result, contains_inanyorder(event))
+        # notBefore, notAfter
+        notBefore, notAfter = _adjust_ts(1200), _adjust_ts(3600)
+        result = get_indexed_calendar_events(notBefore=notBefore, notAfter=notAfter)
+        assert_that(result, has_length(8))
+        assert_that(result, contains_inanyorder(event2, event3, event4, event6, event7, event8, event9, event10))
 
-        # get_indexed_calendar_events(notBefore=1541721660) return 1 in non-utc.
-        result = get_indexed_calendar_events(notBefore=datetime.utcfromtimestamp(1541721660))
-        assert_that(result, has_length(0))
+        result = get_indexed_calendar_events(notBefore=notBefore)
+        assert_that(result, has_length(10))
+        assert_that(result, contains_inanyorder(event2, event3, event4, event6, event7, event8, event9, event10, event11, event12))
 
-        result = get_indexed_calendar_events(notAfter=datetime.utcfromtimestamp(1541635200))
-        assert_that(result, contains_inanyorder(event))
+        result = get_indexed_calendar_events(notAfter=notAfter)
+        assert_that(result, has_length(10))
+        assert_that(result, contains_inanyorder(event1, event2, event3, event4, event5, event6, event7, event8, event9, event10))
 
-        result = get_indexed_calendar_events(notAfter=datetime.utcfromtimestamp(1541635199))
-        assert_that(result, has_length(0))
+        result = get_indexed_calendar_events(notBefore=_adjust_ts(3660))
+        assert_that(result, has_length(5))
+        assert_that(result, contains_inanyorder(event4, event8, event9, event11, event12))
 
-        result = get_indexed_calendar_events(notBefore=datetime.utcfromtimestamp(1541635200), notAfter=datetime.utcfromtimestamp(1541721659))
-        assert_that(result, contains_inanyorder(event))
+        result = get_indexed_calendar_events(notBefore=_adjust_ts(960))
+        assert_that(result, has_length(12))
+
+        result = get_indexed_calendar_events(notAfter=_adjust_ts(3660))
+        assert_that(result, has_length(12))
+
+        result = get_indexed_calendar_events(notAfter=_adjust_ts(960))
+        assert_that(result, has_length(3))
+        assert_that(result, contains_inanyorder(event1,event2, event3))
 
     @WithMockDSTrans
     def test_mimetypes(self):
