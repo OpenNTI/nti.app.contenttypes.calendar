@@ -41,3 +41,6 @@ class TestWorkspaces(ApplicationLayerTest):
             result = self.require_collection_with_title(external, 'Calendars')
             link = self.require_link_href_with_rel(result, 'events')
             assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@events'))
+
+            link = self.require_link_href_with_rel(result, 'export')
+            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@export'))
