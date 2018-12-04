@@ -294,16 +294,16 @@ class TestCalendarViews(CalendarLayerTest):
         res = self.testapp.get(calendar_url, params={'notBefore': '1543190401'}, status=200).json_body
         assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
 
-        # ~ 2018-10-20
-        res = self.testapp.get(calendar_url, params={'notAfter': '1539993600'}, status=200).json_body
+        # ~ 2018-11-20
+        res = self.testapp.get(calendar_url, params={'notAfter': '1540080000'}, status=200).json_body
         assert_that([x['title'] for x in res['Items']], contains('5a'))
 
-        # 2018-10-20 ~ 2018-10-20
-        res = self.testapp.get(calendar_url, params={'notAfter': '1539993600', 'notBefore': '1539993600'}, status=200).json_body
+        # 2018-10-20 ~ 2018-11-20
+        res = self.testapp.get(calendar_url, params={'notAfter': '1540080000', 'notBefore': '1539993600'}, status=200).json_body
         assert_that([x['title'] for x in res['Items']], contains('5a'))
 
-        # ~ 2018-10-19 23:59:59
-        res = self.testapp.get(calendar_url, params={'notAfter': '1539993599', 'sortOn': 'title', 'sortOrder': 'ascending'}, status=200).json_body
+        # ~ 2018-11-19 23:59:59
+        res = self.testapp.get(calendar_url, params={'notAfter': '1540079999', 'sortOn': 'title', 'sortOrder': 'ascending'}, status=200).json_body
         assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
 
         # 2018-10-21 ~ 2018-10-22
