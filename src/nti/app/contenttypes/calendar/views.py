@@ -11,7 +11,12 @@ from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 logger = __import__('logging').getLogger(__name__)
 
+import calendar
 import datetime
+import pytz
+
+from zope import component
+from zope.component.hooks import getSite
 
 from pyramid import httpexceptions as hexc
 
@@ -38,8 +43,14 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.appserver.ugd_edit_views import UGDPutView
 
+from nti.appserver.interfaces import IDisplayableTimeProvider
+
+from nti.common.string import is_true
+
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
+from nti.contenttypes.calendar.interfaces import ICalendarProvider
+from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
 
 from nti.dataserver import authorization as nauth
 
@@ -171,11 +182,11 @@ def get_calendar(context, request):
              name=CONTENTS_VIEW_NAME)
 class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
-    _allowed_sorting_fields = {'title': lambda x: x.title,
-                               'description': lambda x: x.description,
-                               'location': lambda x: x.location,
+    _allowed_sorting_fields = {'title': lambda x: x.title.lower(),
+                               'description': lambda x: x.description and x.description.lower(),
+                               'location': lambda x: x.location and x.location.lower(),
                                'start_time': lambda x: x.start_time,
-                               'end_time': lambda x: x.end_time,
+                               'end_time': lambda x: (x.end_time is not None, x.end_time),
                                'createdtime': lambda x: x.createdTime,
                                'lastModified': lambda x: x.lastModified}
 
@@ -214,7 +225,16 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
         return res
 
     def get_source_items(self):
-        return [x for x in self.context.values()]
+        events = [x for x in self.context.values()]
+
+        exclude_dynamic = is_true(self._params.get('exclude_dynamic_events'))
+        if not exclude_dynamic:
+            # May have other better way to get the course.
+            providers = component.subscribers((self.remoteUser, self.context.__parent__),
+                                              ICalendarDynamicEventProvider)
+            for x in providers or ():
+                events.extend(x.iter_events())
+        return events
 
     def _filter_items(self, filters):
         items = self.get_source_items()
