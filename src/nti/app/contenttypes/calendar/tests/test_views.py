@@ -140,6 +140,51 @@ class TestCalendarEventViews(CalendarLayerTest):
 class TestCalendarViews(CalendarLayerTest):
 
     @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
+    def test_sorting(self):
+        username = u'testuser001@nextthought.com'
+        with mock_dataserver.mock_db_trans(self.ds):
+            calendar = MockCalendar(title=u"study")
+            calendar.containerId = u'container_id'
+            calendar.id = u'container_id'
+            interface.alsoProvides(calendar, IContained)
+
+            user = self._create_user(username)
+            user.addContainedObject(calendar)
+
+            calendar_ntiid = to_external_ntiid_oid(calendar)
+            assert_that(calendar_ntiid, not_none())
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            for title, description, location, start_time, end_time in (
+                                                                    (u"aa", u"d", u"A2", datetime(2018, 10, 23), datetime(2018, 11, 23, 0, 0, 0)),
+                                                                    (u"b1", u"c", u"a", datetime(2018, 10, 25), datetime(2018, 11, 19, 0, 0, 0)),
+                                                                    (u"AAA", None, None, datetime(2018, 10, 22), datetime(2018, 11, 24, 0, 0, 0)),
+                                                                    (u'B', u'DD', u"e", datetime(2018, 10, 24), None)):
+                event = CalendarEvent(title=title,
+                                      description=description,
+                                      location=location,
+                                      icon=u'/home/nt',
+                                      start_time=start_time,
+                                      end_time=end_time)
+                calendar.store_event(event)
+
+        calendar_url = '/dataserver2/Objects/%s/@@contents' % calendar_ntiid
+        res = self.testapp.get(calendar_url, params={'sortOn': 'title', 'sortOrder': 'ascending'}, status=200).json_body
+        assert_that([x['title'] for x in res['Items']], contains('aa', 'AAA', 'B', 'b1'))
+
+        res = self.testapp.get(calendar_url, params={'sortOn': 'description', 'sortOrder': 'ascending'}, status=200).json_body
+        assert_that([x['description'] for x in res['Items']], contains(None, 'c', 'd', 'DD'))
+
+        res = self.testapp.get(calendar_url, params={'sortOn': 'location', 'sortOrder': 'ascending'}, status=200).json_body
+        assert_that([x['location'] for x in res['Items']], contains(None, 'a', 'A2', 'e'))
+
+        res = self.testapp.get(calendar_url, params={'sortOn': 'start_time', 'sortOrder': 'ascending'}, status=200).json_body
+        assert_that([x['title'] for x in res['Items']], contains('AAA', 'aa', 'B', 'b1'))
+
+        res = self.testapp.get(calendar_url, params={'sortOn': 'end_time', 'sortOrder': 'ascending'}, status=200).json_body
+        assert_that([x['title'] for x in res['Items']], contains('B', 'b1', 'aa', 'AAA'))
+
+    @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
     def testCalendarViews(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):

@@ -182,11 +182,11 @@ def get_calendar(context, request):
              name=CONTENTS_VIEW_NAME)
 class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
-    _allowed_sorting_fields = {'title': lambda x: x.title,
-                               'description': lambda x: x.description,
-                               'location': lambda x: x.location,
+    _allowed_sorting_fields = {'title': lambda x: x.title.lower(),
+                               'description': lambda x: x.description and x.description.lower(),
+                               'location': lambda x: x.location and x.location.lower(),
                                'start_time': lambda x: x.start_time,
-                               'end_time': lambda x: x.end_time,
+                               'end_time': lambda x: (x.end_time is not None, x.end_time),
                                'createdtime': lambda x: x.createdTime,
                                'lastModified': lambda x: x.lastModified}
 
