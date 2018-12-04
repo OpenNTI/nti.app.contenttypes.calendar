@@ -24,6 +24,8 @@ from io import BytesIO
 
 from pyramid.view import view_config
 
+from pyramid import httpexceptions as hexc
+
 from requests.structures import CaseInsensitiveDict
 
 from zc.displayname.interfaces import IDisplayNameGenerator
@@ -203,7 +205,7 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
             logger.info('Initiating calendars export')
 
             index = 0
-            for calendar in self.context.container:
+            for calendar in self._calendars:
                 index = index + 1
                 source = self._build_icalendar(calendar)
                 filer.save(self._filename(calendar, index=index),
@@ -216,7 +218,15 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
         finally:
             filer.reset()
 
+    @Lazy
+    def _calendars(self):
+        return self.context.container
+
     def __call__(self):
+        # if no calendars, the download zip file can not be opened.
+        if not self._calendars:
+            return hexc.HTTPNoContent()
+
         path = tempfile.mkdtemp()
         try:
             zip_file = self._export_calendars(path)
