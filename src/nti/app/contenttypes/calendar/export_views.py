@@ -107,8 +107,8 @@ class CalendarExportMixin(object):
         events = [x for x in calendar.values()]
 
         # It won't show any dynamic events by default.
-        include_dynamic = is_true(self._params.get('include_dynamic_events'))
-        if include_dynamic:
+        exclude_dynamic = is_true(self._params.get('exclude_dynamic_events'))
+        if not exclude_dynamic:
             providers = component.subscribers((self.remoteUser, calendar.__parent__),
                                               ICalendarDynamicEventProvider)
             for x in providers or ():
