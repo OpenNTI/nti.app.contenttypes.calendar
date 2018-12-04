@@ -23,8 +23,6 @@ from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
 from nti.app.contenttypes.calendar.workspaces import CalendarCollection
 
-from nti.app.contenttypes.calendar.views import CalendarTodayEventsView
-
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contenttypes.calendar.model import Calendar
@@ -302,65 +300,3 @@ class TestCalendarViews(CalendarLayerTest):
         # 2018-07-06 ~ 2018-07-06
         res = self.testapp.get(calendar_url, params={'notBefore': '1530835200', 'notAfter': '1530835200'}, status=200).json_body
         assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
-
-
-class TestCalendarTodayEventsView(CalendarLayerTest):
-
-    @WithSharedApplicationMockDS(users=(u'test001',), testapp=True, default_authenticate=True)
-    def testCalendarViews(self):
-        username = u'test001'
-        with mock_dataserver.mock_db_trans(self.ds):
-            user = User.get_user(username)
-            collection = CalendarCollection(user)
-            view = CalendarTodayEventsView(collection)
-
-            notBefore = datetime.utcfromtimestamp(2000)
-            notAfter = datetime.utcfromtimestamp(3000)
-
-            # start_time < notBefore
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=datetime.utcfromtimestamp(1999))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(False))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=datetime.utcfromtimestamp(2000))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=datetime.utcfromtimestamp(2001))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=datetime.utcfromtimestamp(3000))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=datetime.utcfromtimestamp(3001))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(20), end_time=None)
-            assert_that(view._include_event(event, notBefore, notAfter), is_(False))
-
-            # start_time is within (notBefore, notAfter)
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2000), end_time=datetime.utcfromtimestamp(2000))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2000), end_time=datetime.utcfromtimestamp(2005))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2000), end_time=datetime.utcfromtimestamp(3000))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2000), end_time=datetime.utcfromtimestamp(5999))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2000), end_time=None)
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(2005), end_time=None)
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(3000), end_time=None)
-            assert_that(view._include_event(event, notBefore, notAfter), is_(True))
-
-            # start_time > notAfter
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(3001), end_time=datetime.utcfromtimestamp(3002))
-            assert_that(view._include_event(event, notBefore, notAfter), is_(False))
-
-            event = CalendarEvent(title=u'ok', start_time=datetime.utcfromtimestamp(3001), end_time=None)
-            assert_that(view._include_event(event, notBefore, notAfter), is_(False))

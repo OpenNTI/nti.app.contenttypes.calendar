@@ -35,9 +35,6 @@ from nti.app.contentfile import validate_sources
 from nti.app.contentfolder.resources import is_internal_file_link
 
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
-from nti.app.contenttypes.calendar import TODAY_EVENTS_VIEW_NAME
-
-from nti.contenttypes.calendar.utils import get_indexed_calendar_events
 
 from nti.app.externalization.error import raise_json_error
 
@@ -47,6 +44,8 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.appserver.interfaces import IDisplayableTimeProvider
+
+from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
@@ -226,7 +225,16 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
         return res
 
     def get_source_items(self):
-        return [x for x in self.context.values()]
+        events = [x for x in self.context.values()]
+
+        exclude_dynamic = is_true(self._params.get('exclude_dynamic_events'))
+        if not exclude_dynamic:
+            # May have other better way to get the course.
+            providers = component.subscribers((self.remoteUser, self.context.__parent__),
+                                              ICalendarDynamicEventProvider)
+            for x in providers or ():
+                events.extend(x.iter_events())
+        return events
 
     def _filter_items(self, filters):
         items = self.get_source_items()
@@ -304,75 +312,5 @@ class CalendarCollectionView(AbstractAuthenticatedView,
         result[TOTAL] = len(result[ITEMS])
         self._batch_items_iterable(result,
                                    result[ITEMS],
-                                   number_items_needed=result[TOTAL])
-        return result
-
-
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             context=ICalendarCollection,
-             permission=nauth.ACT_READ,
-             request_method='GET',
-             name=TODAY_EVENTS_VIEW_NAME)
-class CalendarTodayEventsView(AbstractAuthenticatedView,
-                              BatchingUtilsMixin):
-
-    #: To maintain BWC; disable paging by default.
-    _DEFAULT_BATCH_SIZE = None
-    _DEFAULT_BATCH_START = None
-
-    @Lazy
-    def _local_tzname(self):
-        timezone_util = component.queryMultiAdapter((self.remoteUser, self.request), IDisplayableTimeProvider)
-        if timezone_util:
-            return timezone_util.get_timezone_display_name()
-        return pytz.UTC
-
-    def _time_range(self, tz=None):
-        # return the start/end of today in local timezone.
-        tz = self._local_tzname if tz is None else tz
-        local_tz = pytz.timezone(tz)
-        local_dt = datetime.datetime.now(tz=local_tz)
-        local_dt = datetime.datetime.combine(local_dt.date(), datetime.time.min)
-        utc_dt = local_tz.localize(local_dt).astimezone(pytz.utc)
-
-        notBefore = calendar.timegm(utc_dt.utctimetuple())
-        notAfter = notBefore + 24*60*60 - 1
-        return notBefore, notAfter
-
-    def _include_event(self, event, notBefore, notAfter):
-        return (notBefore <= event.start_time and event.start_time <= notAfter) \
-                or  (event.end_time is not None and notBefore <= event.end_time and event.end_time <= notAfter) \
-                or  (event.end_time is not None and event.start_time < notBefore and notAfter < event.end_time)
-
-    def _dynamic_events(self, user, notBefore, notAfter):
-        res = []
-        providers = component.subscribers((user, ),
-                                          ICalendarDynamicEventProvider)
-        for provider in providers or ():
-            for x in provider.iter_events():
-                # like index query, we won't return events that end_time is None and start_time < notBefore.
-                if self._include_event(x, notBefore, notAfter):
-                    res.append(x)
-        return res
-
-    def __call__(self):
-        notBefore, notAfter = self._time_range()
-        sites = getSite().__name__
-        events = get_indexed_calendar_events(notBefore=notBefore,
-                                             notAfter=notAfter,
-                                             sites=sites)
-
-        dynamic_events = self._dynamic_events(self.remoteUser,
-                                              notBefore=datetime.datetime.utcfromtimestamp(notBefore),
-                                              notAfter=datetime.datetime.utcfromtimestamp(notAfter))
-        events.extend(dynamic_events)
-
-        result = LocatedExternalDict()
-        result.__name__ = self.request.view_name
-        result.__parent__ = self.request.context
-        result[TOTAL] = len(events)
-        self._batch_items_iterable(result,
-                                   events,
                                    number_items_needed=result[TOTAL])
         return result

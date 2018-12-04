@@ -19,7 +19,6 @@ from zope.security.interfaces import IPrincipal
 
 from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
-from nti.app.contenttypes.calendar import TODAY_EVENTS_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
@@ -90,7 +89,7 @@ class CalendarCollection(Contained):
     @property
     def links(self):
         result = []
-        for rel in (EVENTS_VIEW_NAME, TODAY_EVENTS_VIEW_NAME):
+        for rel in (EVENTS_VIEW_NAME,):
             result.append( Link(self.user,
                                 rel=rel,
                                 elements=(self.__name__,
