@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from pyramid.threadlocal import get_current_request
+
 from zope import component
 from zope import interface
 
@@ -19,6 +21,7 @@ from zope.security.interfaces import IPrincipal
 
 from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
+from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
@@ -66,6 +69,18 @@ class CalendarCollection(Contained):
         return acl_from_aces(aces)
 
     @Lazy
+    def _request(self):
+        return getattr(self, 'request', None) or get_current_request()
+
+    def _context_ntiids(self):
+        result = self._request.params.getall('context_ntiids') if self._request else None
+        return [x for x in result or () if x]
+
+    def _excluded_context_ntiids(self):
+        result = self._request.params.getall('excluded_context_ntiids') if self._request else None
+        return [x for x in result or () if x]
+
+    @Lazy
     def calendars(self):
         """
         Return a dict of course catalog entries the user is not enrolled
@@ -75,7 +90,8 @@ class CalendarCollection(Contained):
         providers = component.subscribers((self.user,),
                                           ICalendarProvider)
         for x in providers or ():
-            result.extend(x.iter_calendars())
+            result.extend(x.iter_calendars(context_ntiids=self._context_ntiids(),
+                                           excluded_context_ntiids=self._excluded_context_ntiids()))
         return result
 
     @Lazy
@@ -89,7 +105,7 @@ class CalendarCollection(Contained):
     @property
     def links(self):
         result = []
-        for rel in (EVENTS_VIEW_NAME,):
+        for rel in (EVENTS_VIEW_NAME, EXPORT_VIEW_NAME):
             result.append( Link(self.user,
                                 rel=rel,
                                 elements=(self.__name__,
