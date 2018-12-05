@@ -216,9 +216,12 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
         res = {}
         if notBefore:
-            res['notBefore'] = lambda x: x.end_time is None or x.end_time >= notBefore
+            # All events not yet completed before this timestamp.
+            res['notBefore'] = lambda x: (x.start_time is not None and x.start_time >= notBefore) \
+                                      or (x.end_time is not None and x.end_time >= notBefore)
         if notAfter:
-            res['notAfter'] = lambda x: x.start_time is None or x.start_time <= notAfter
+            # All events started before this timestamp (may or may not be complete)
+            res['notAfter'] = lambda x: (x.start_time is not None and x.start_time <= notAfter)
         if mimeType:
             res['mimeType'] = lambda x: x.mimeType == mimeType
 
