@@ -242,8 +242,8 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
                 events.extend(x.iter_events())
         return events
 
-    def _filter_items(self, filters):
-        items = self.get_source_items()
+    def _filter_items(self, filters, items=None):
+        items = self.get_source_items() if items is None else items
         if not filters:
             return items
 
@@ -277,16 +277,21 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
             filters = self._filter_params()
             sortOn, sortOrder = self._sort_params()
 
-            items = self._filter_items(filters)
+            total_items = self.get_source_items()
+            items = self._filter_items(filters, items=total_items)
             items = self._sorted_items(items, sortOn, sortOrder)
 
             result = LocatedExternalDict()
             result.__name__ = self.request.view_name
             result.__parent__ = self.request.context
-            result[StandardExternalFields.TOTAL] = len(items)
+            result[TOTAL] = len(total_items)
+
+            if filters:
+                result['FilteredTotalItemCount'] = len(items)
+
             self._batch_items_iterable(result,
                                        items,
-                                       number_items_needed=result[StandardExternalFields.TOTAL])
+                                       number_items_needed=len(items))
             return result
         except ValueError as e:
             raise_json_error(self.request,

@@ -272,15 +272,15 @@ class TestCalendarViews(CalendarLayerTest):
 
         # 2018-10-20 ~ 2018-11-26, return all items
         res = self.testapp.get(calendar_url, params={'notBefore': '1539993600', 'notAfter': '1543190400'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6)}))
+        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6), 'FilteredTotalItemCount': is_(6)}))
 
         # 2018-10-20 ~
         res = self.testapp.get(calendar_url, params={'notBefore': '1539993600'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6)}))
+        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6), 'FilteredTotalItemCount': is_(6)}))
 
         # ~ 2018-11-26
         res = self.testapp.get(calendar_url, params={'notAfter': '1543190400'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6)}))
+        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6), 'FilteredTotalItemCount': is_(6)}))
 
         # 2018-11-26 ~
         res = self.testapp.get(calendar_url, params={'notBefore': '1543190400'}, status=200).json_body
@@ -292,7 +292,7 @@ class TestCalendarViews(CalendarLayerTest):
 
         # 2018-11-26 00:00:01 ~
         res = self.testapp.get(calendar_url, params={'notBefore': '1543190401'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(6), 'FilteredTotalItemCount': is_(0)}))
 
         # ~ 2018-10-20
         res = self.testapp.get(calendar_url, params={'notAfter': '1539993600'}, status=200).json_body
@@ -304,7 +304,7 @@ class TestCalendarViews(CalendarLayerTest):
 
         # ~ 2018-10-19 23:59:59
         res = self.testapp.get(calendar_url, params={'notAfter': '1539993599', 'sortOn': 'title', 'sortOrder': 'ascending'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(6), 'FilteredTotalItemCount': is_(0)}))
 
         # 2018-10-21 ~ 2018-10-22
         res = self.testapp.get(calendar_url, params={'notBefore': '1540080000', 'notAfter': '1540166400', 'sortOn': 'title', 'sortOrder': 'ascending'}, status=200).json_body
@@ -312,11 +312,11 @@ class TestCalendarViews(CalendarLayerTest):
 
         # 2018-12-01 ~ 2018-12-02
         res = self.testapp.get(calendar_url, params={'notBefore': '1543622400', 'notAfter': '1543708800'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(6), 'FilteredTotalItemCount': is_(0)}))
 
         # 2018-09-01 ~ 2018-09-03
         res = self.testapp.get(calendar_url, params={'notBefore': '1535760000', 'notAfter': '1535932800'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(6), 'FilteredTotalItemCount': is_(0)}))
 
         # notBefore can not be greater then notAfter
         res = self.testapp.get(calendar_url, params={'notBefore': '20', 'notAfter': '10'}, status=422).json_body
@@ -324,13 +324,13 @@ class TestCalendarViews(CalendarLayerTest):
 
         # mimeType
         res = self.testapp.get(calendar_url, params={'mimeType': 'application/vnd.nextthought.calendar.calendarevent'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6)}))
+        assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6), 'FilteredTotalItemCount': is_(6)}))
 
         res = self.testapp.get(calendar_url, params={'mimeType': ''}, status=200).json_body
         assert_that(res, has_entries({'Items': has_length(6), 'Total': is_(6)}))
 
         res = self.testapp.get(calendar_url, params={'mimeType': 'abc'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(6), 'FilteredTotalItemCount': is_(0)}))
 
         # Test end_time which may be None.
         with mock_dataserver.mock_db_trans(self.ds):
@@ -344,4 +344,4 @@ class TestCalendarViews(CalendarLayerTest):
 
         # 2018-07-06 ~ 2018-07-06
         res = self.testapp.get(calendar_url, params={'notBefore': '1530835200', 'notAfter': '1530835200'}, status=200).json_body
-        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(0)}))
+        assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(7)}))
