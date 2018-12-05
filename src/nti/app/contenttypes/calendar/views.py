@@ -182,6 +182,9 @@ def get_calendar(context, request):
              name=CONTENTS_VIEW_NAME)
 class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
+    _DEFAULT_BATCH_SIZE = 50
+    _DEFAULT_BATCH_START = 0
+
     _allowed_sorting_fields = {'title': lambda x: x.title.lower(),
                                'description': lambda x: x.description and x.description.lower(),
                                'location': lambda x: x.location and x.location.lower(),
