@@ -56,6 +56,9 @@ from nti.dataserver.users.interfaces import IFriendlyNamed
 from nti.namedfile.file import safe_filename
 
 
+def _mime_type(obj):
+    return getattr(obj, 'mimeType', None) or getattr(obj, 'mime_type', None)
+
 class CalendarExportMixin(object):
 
     @Lazy
@@ -73,6 +76,8 @@ class CalendarExportMixin(object):
 
     def _build_ievent(self, source, dt_stamp):
         target = _iEvent()
+        target['X-NTIID'] = source.ntiid or u''
+        target['X-NTI-MIMETYPE'] = _mime_type(source) or u''
 
         # dtstamp represents when this event is added into the ics file.
         target['dtstamp'] = dt_stamp
@@ -98,6 +103,8 @@ class CalendarExportMixin(object):
         cal = _iCalendar()
         cal['title'] = calendar.title
         cal['description'] = calendar.description or u''
+        cal['X-NTIID'] = calendar.ntiid or u''
+        cal['X-NTI-MIMETYPE'] = _mime_type(calendar) or u''
 
         dt_stamp = self._transform_datetime(datetime.datetime.utcnow())
         for event in self._events_for_calendar(calendar):
@@ -187,15 +194,26 @@ class _CalendarExportFiler(DirectoryFiler):
              name=EXPORT_VIEW_NAME)
 class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
 
+    def __init__(self, request):
+        super(BulkCalendarExportView, self).__init__(request)
+        self._cache_filenames = set()
+
     def _zipname(self):
         return '%s_%s' % (self.remoteUser.username, u'calendars')
 
-    def _filename(self, calendar, index):
-        if calendar.title:
-            filename = '%s.ics' % calendar.title
-        else:
-            filename = "calendar_%s.ics" % index
+    def _filename(self, calendar, index=None):
+        prefix = calendar.title or u'calendar'
+        filename = "%s.ics" % prefix if index is None else "%s_%s.ics" % (prefix, index)
         return safe_filename(filename)
+
+    def _generate_calendar_filename(self, calendar):
+        filename = self._filename(calendar)
+        index = 0
+        while filename in self._cache_filenames:
+            index = index + 1
+            filename = self._filename(calendar, index)
+        self._cache_filenames.add(filename)
+        return filename
 
     def _export_calendars(self, path):
         zipname = self._zipname()
@@ -204,11 +222,9 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
             filer.prepare()
             logger.info('Initiating calendars export')
 
-            index = 0
             for calendar in self._calendars:
-                index = index + 1
                 source = self._build_icalendar(calendar)
-                filer.save(self._filename(calendar, index=index),
+                filer.save(self._generate_calendar_filename(calendar),
                            source,
                            bucket=text_(zipname),
                            contentType="text/ics",
