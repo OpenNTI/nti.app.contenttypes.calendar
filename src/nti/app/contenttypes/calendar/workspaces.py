@@ -116,7 +116,7 @@ class CalendarCollection(Contained):
 
 
 def _calendar_collection_factory(user_workspace):
-    return ICalendarCollection(user_workspace)
+    return ICalendarCollection(user_workspace, None)
 
 
 @component.adapter(IUserWorkspace)

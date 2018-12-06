@@ -25,4 +25,4 @@ from nti.appserver.workspaces.interfaces import IUserService
 @interface.implementer(IPathAdapter)
 def calendar_collection_path_adapter(user, unused_request):
     service = IUserService(user)
-    return ICalendarCollection(service.user_workspace)
+    return ICalendarCollection(service.user_workspace, None)
