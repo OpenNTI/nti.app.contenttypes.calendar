@@ -21,6 +21,8 @@
     <!-- Adapters -->
     <adapter factory=".adapters.calendar_event_to_calendar" />
 
+    <adapter factory=".workspaces._calendar_collection_adapter" />
+
 	<adapter name="Calendars"
 			 for="nti.dataserver.interfaces.IUser
 			      pyramid.interfaces.IRequest"
