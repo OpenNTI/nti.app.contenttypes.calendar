@@ -44,8 +44,8 @@ from nti.links.links import Link
 logger = __import__('logging').getLogger(__name__)
 
 
-@interface.implementer(ICalendarCollection)
 @component.adapter(IUserWorkspace)
+@interface.implementer(ICalendarCollection)
 class CalendarCollection(Contained):
 
     name = CALENDARS
@@ -53,8 +53,9 @@ class CalendarCollection(Contained):
 
     accepts = ()
 
-    def __init__(self, user):
-        self.__parent__ = user
+    def __init__(self, workspace):
+        # We get a user here on path adapter
+        self.__parent__ = workspace.user
 
     @property
     def user(self):
@@ -115,4 +116,25 @@ class CalendarCollection(Contained):
 
 
 def _calendar_collection_factory(user_workspace):
-    return CalendarCollection(user_workspace.user)
+    return ICalendarCollection(user_workspace)
+
+
+@component.adapter(IUserWorkspace)
+@interface.implementer(ICalendarCollection)
+def _calendar_collection_adapter(workspace):
+    """
+    Adapter to the :class:`ICalendarCollection`; this is the default
+    adapter.
+    """
+    result = CalendarCollection(workspace)
+    return result
+
+
+@component.adapter(IUserWorkspace)
+@interface.implementer(ICalendarCollection)
+def _empty_calendar_collection_adapter(unused_workspace):
+    """
+    Empty adapter to the :class:`ICalendarCollection` for sites that
+    may not want this functionality.
+    """
+    pass
