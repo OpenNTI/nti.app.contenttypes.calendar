@@ -22,6 +22,7 @@ from zope.security.interfaces import IPrincipal
 from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
+from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
@@ -106,7 +107,7 @@ class CalendarCollection(Contained):
     @property
     def links(self):
         result = []
-        for rel in (EVENTS_VIEW_NAME, EXPORT_VIEW_NAME):
+        for rel in (EVENTS_VIEW_NAME, EXPORT_VIEW_NAME, GENERATE_FEED_URL):
             result.append( Link(self.user,
                                 rel=rel,
                                 elements=(self.__name__,

@@ -12,16 +12,15 @@ from hamcrest import contains
 from hamcrest import not_none
 from hamcrest import has_entries
 from hamcrest import has_length
-from hamcrest import has_properties
 from hamcrest import assert_that
+from hamcrest import has_properties
+from hamcrest import contains_string
 
 from datetime import datetime
 
 from zope import interface
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
-
-from nti.app.contenttypes.calendar.workspaces import CalendarCollection
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
@@ -39,8 +38,6 @@ from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.authorization_acl import ace_denying_all
 
 from nti.dataserver.interfaces import ALL_PERMISSIONS
-
-from nti.dataserver.users import User
 
 from nti.ntiids.oids import to_external_ntiid_oid
 
@@ -345,3 +342,13 @@ class TestCalendarViews(CalendarLayerTest):
         # 2018-07-06 ~ 2018-07-06
         res = self.testapp.get(calendar_url, params={'notBefore': '1530835200', 'notAfter': '1530835200'}, status=200).json_body
         assert_that(res, has_entries({'Items': has_length(0), 'Total': is_(7)}))
+
+        # Calendar feed (consistent)
+        generate_feed_url = '/dataserver2/users/sjohnson@nextthought.com/Calendars/@@GenerateFeedURL'
+        res = self.testapp.get(generate_feed_url)
+        feed_url = res.json_body
+        assert_that(feed_url,
+                    contains_string('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@calendar_feed.ics?token='))
+        res = self.testapp.get(generate_feed_url)
+        assert_that(res.json_body,
+                    is_(feed_url))

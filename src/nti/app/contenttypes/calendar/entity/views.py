@@ -55,3 +55,15 @@ class UserCompositeCalendarView(CalendarContentsGetView):
             items.extend(x.iter_events(context_ntiids=context_ntiids,
                                        excluded_context_ntiids=excluded_context_ntiids))
         return items
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarCollection,
+             request_method='GET',
+             permission=nauth.ACT_READ,
+             name='calendar_feed.ics')
+class CalendarContentsFeedView(UserCompositeCalendarView):
+
+    _DEFAULT_BATCH_SIZE = None
+    _DEFAULT_BATCH_START = None
