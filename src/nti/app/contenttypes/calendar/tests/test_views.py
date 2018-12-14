@@ -352,3 +352,4 @@ class TestCalendarViews(CalendarLayerTest):
         res = self.testapp.get(generate_feed_url)
         assert_that(res.json_body,
                     is_(feed_url))
+        self.testapp.get(feed_url)
