@@ -18,3 +18,5 @@ CONTENTS_VIEW_NAME = u'contents'
 EXPORT_VIEW_NAME = u'export'
 
 EVENTS_VIEW_NAME = u'events'
+
+GENERATE_FEED_URL = u'GenerateFeedURL'
