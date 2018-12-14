@@ -8,8 +8,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import transaction
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -125,5 +123,5 @@ class UserCompositeCalendarDoomPostView(UserCompositeCalendarView):
             result = super(UserCompositeCalendarDoomPostView, self).__call__()
             return result
         finally:
-            transaction.doom()
+            self.request.environ['nti.commit_veto'] = 'abort'
             logger.debug("Always dooming the transaction for UserCompositeCalendarDoomPostView.")
