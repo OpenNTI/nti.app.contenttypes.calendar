@@ -107,6 +107,7 @@ class CalendarExportMixin(object):
         cal['X-NTI-MIMETYPE'] = _mime_type(calendar) or u''
 
         dt_stamp = self._transform_datetime(datetime.datetime.utcnow())
+
         for event in self._events_for_calendar(calendar):
             cal.add_component(self._build_ievent(event, dt_stamp=dt_stamp))
 
@@ -138,6 +139,20 @@ class CalendarExportMixin(object):
         filename = '%s_%s.ics' % (displayname, calendar.title or u'calendar')
         return safe_filename(filename)
 
+    def _make_response(self, data, filename):
+        response = self.request.response
+        response.content_encoding = 'identity'
+        response.content_type = 'text/ics; charset=UTF-8'
+        response.content_disposition = 'attachment; filename="%s"' % filename
+
+        stream = BytesIO()
+        stream.write(data)
+
+        stream.flush()
+        stream.seek(0)
+        response.body_file = stream
+        return response
+
 
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
@@ -149,41 +164,8 @@ class CalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
 
     def __call__(self):
         data = self._build_icalendar(self.context)
-
-        response = self.request.response
-        response.content_encoding = 'identity'
-        response.content_type = 'text/ics; charset=UTF-8'
-        response.content_disposition = 'attachment; filename="%s"' % self._filename(self.context)
-
-        stream = BytesIO()
-        stream.write(data)
-
-        stream.flush()
-        stream.seek(0)
-        response.body_file = stream
-        return response
-
-
-class _CalendarExportFiler(DirectoryFiler):
-
-    def __init__(self, zipname, path):
-        self.zipname= zipname
-        super(_CalendarExportFiler, self).__init__(path)
-
-    def prepare(self, path=None):
-        self.path = path if path else self.path
-        if not self.path:
-            self.path = tempfile.mkdtemp()
-        else:
-            self.path = super(_CalendarExportFiler, self).prepare(self.path)
-
-    def asZip(self, path=None):
-        base_name = path or tempfile.mkdtemp()
-        base_name = os.path.join(base_name, self.zipname)
-        if os.path.exists(base_name + ".zip"):
-            os.remove(base_name + ".zip")
-        result = shutil.make_archive(base_name, 'zip', self.path)
-        return result
+        filename = self._filename(self.context)
+        return self._make_response(data, filename)
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -194,66 +176,28 @@ class _CalendarExportFiler(DirectoryFiler):
              name=EXPORT_VIEW_NAME)
 class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
 
-    def __init__(self, request):
-        super(BulkCalendarExportView, self).__init__(request)
-        self._cache_filenames = set()
-
-    def _zipname(self):
-        return '%s_%s' % (self.remoteUser.username, u'calendars')
-
-    def _filename(self, calendar, index=None):
-        prefix = calendar.title or u'calendar'
-        filename = "%s.ics" % prefix if index is None else "%s_%s.ics" % (prefix, index)
+    def _filename(self):
+        displayname = self._display_name(self.remoteUser,
+                                         self.request)
+        filename = '%s_%s.ics' % (displayname, u'calendars')
         return safe_filename(filename)
-
-    def _generate_calendar_filename(self, calendar):
-        filename = self._filename(calendar)
-        index = 0
-        while filename in self._cache_filenames:
-            index = index + 1
-            filename = self._filename(calendar, index)
-        self._cache_filenames.add(filename)
-        return filename
-
-    def _export_calendars(self, path):
-        zipname = self._zipname()
-        filer = _CalendarExportFiler(zipname, path)
-        try:
-            filer.prepare()
-            logger.info('Initiating calendars export')
-
-            for calendar in self._calendars:
-                source = self._build_icalendar(calendar)
-                filer.save(self._generate_calendar_filename(calendar),
-                           source,
-                           bucket=text_(zipname),
-                           contentType="text/ics",
-                           overwrite=True)
-
-            return filer.asZip(path=path)
-        finally:
-            filer.reset()
 
     @Lazy
     def _calendars(self):
         return self.context.container
 
+    def _build_icalendar(self):
+        cal = _iCalendar()
+        cal['title'] = u'My Calendars'
+
+        dt_stamp = self._transform_datetime(datetime.datetime.utcnow())
+        for x in self._calendars:
+            for event in self._events_for_calendar(x):
+                cal.add_component(self._build_ievent(event, dt_stamp=dt_stamp))
+
+        return cal.to_ical()
+
     def __call__(self):
-        # if no calendars, the download zip file can not be opened.
-        if not self._calendars:
-            return hexc.HTTPNoContent()
-
-        path = tempfile.mkdtemp()
-        try:
-            zip_file = self._export_calendars(path)
-            filename = os.path.split(zip_file)[1]
-
-            response = self.request.response
-            response.content_encoding = 'identity'
-            response.content_type = 'application/zip; charset=UTF-8'
-            content_disposition = 'attachment; filename="%s"' % filename
-            response.content_disposition = str(content_disposition)
-            response.body_file = open(zip_file, "rb")
-            return response
-        finally:
-            shutil.rmtree(path, True)
+        data = self._build_icalendar()
+        filename = self._filename()
+        return self._make_response(data, filename)

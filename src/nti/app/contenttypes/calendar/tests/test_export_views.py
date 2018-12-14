@@ -114,41 +114,78 @@ class TestCalendarExportView(CalendarLayerTest):
         assert_that(eve['last-modified'], not_none())
 
 
-def _mock_calendars():
-    return [MockCalendar(title=u"study"),
-            MockCalendar(title=u"play")]
-
-
 class TestBulkCalendarExportView(CalendarLayerTest):
 
+    def _add_calendar(self, user, title=u'study'):
+        calendar = MockCalendar(title=title)
+        calendar.containerId = u'container_id' + title
+        calendar.id = u'container_id' + title
+        interface.alsoProvides(calendar, IContained)
+        user.addContainedObject(calendar)
+        return calendar
+
+    def _add_event(self, calendar, title=u'Golf'):
+        event = CalendarEvent(title=title,
+                             description=u'golf training',
+                             location=u'Westwood golf court',
+                             start_time=datetime.utcfromtimestamp(1541721600), # 2018-11-09T00:00:00Z
+                             end_time=datetime.utcfromtimestamp(1541808000), # 2018-11-10T00:00:00Z
+                             icon=u'/abc/efg')
+        return calendar.store_event(event)
+
     @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
-    @with_patched_object("nti.app.contenttypes.calendar.export_views.BulkCalendarExportView", "_calendars", _mock_calendars())
     def test_bulk_export(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):
-            calendar = MockCalendar(title=u"study")
-            calendar.containerId = u'container_id'
-            calendar.id = u'container_id'
-            interface.alsoProvides(calendar, IContained)
-
             user = self._create_user(username)
-            user.addContainedObject(calendar)
-
-            view = BulkCalendarExportView(self.request)
-            assert_that(view._generate_calendar_filename(calendar), is_(u'study.ics'))
-            assert_that(view._generate_calendar_filename(calendar), is_(u'study_1.ics'))
-            assert_that(view._generate_calendar_filename(calendar), is_(u'study_2.ics'))
-
-            calendar.title = u''
-            assert_that(view._generate_calendar_filename(calendar), is_(u'calendar.ics'))
-            assert_that(view._generate_calendar_filename(calendar), is_(u'calendar_1.ics'))
-            assert_that(view._generate_calendar_filename(calendar), is_(u'calendar_2.ics'))
 
         calendar_url = '/dataserver2/users/%s/Calendars/@@export' % username
         res = self.testapp.get(calendar_url, status=200)
-        stream = BytesIO()
-        stream.write(res.body)
-        zfile = ZipFile(stream)
-        assert_that([x.filename for x in zfile.filelist], contains_inanyorder('sjohnson@nextthought.com_calendars/',
-                                                                              'sjohnson@nextthought.com_calendars/play.ics',
-                                                                              'sjohnson@nextthought.com_calendars/study.ics'))
+
+        cal = iCalendar.from_ical(res.body)
+        assert_that(cal['title'], is_('My Calendars'))
+        assert_that(cal.subcomponents, has_length(0))
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            class _mock_ws(object):
+                def __init__(self, user):
+                    self.user = user
+
+            view = BulkCalendarExportView(self.request)
+            view._calendars = []
+
+            res = iCalendar.from_ical(view._build_icalendar())
+            assert_that(res['title'], 'My Calendars')
+            assert_that(res.subcomponents, has_length(0))
+
+            # add calendar 1
+            calendar1 = self._add_calendar(user,title=u'study')
+            event1 = self._add_event(calendar1, title=u'golf')
+            view._calendars =[calendar1]
+
+            res = iCalendar.from_ical(view._build_icalendar())
+            assert_that(res['title'], 'My Calendars')
+            assert_that(res.subcomponents, has_length(1))
+            assert_that(res.subcomponents[0]['summary'], is_(u'golf'))
+
+            # add calendar 2
+            calendar2 = self._add_calendar(user, title=u'work')
+            event2 = self._add_event(calendar2, title=u'tennis')
+            event3 = self._add_event(calendar2, title=u'tennis3')
+            view._calendars =[calendar2]
+
+            res = iCalendar.from_ical(view._build_icalendar())
+            assert_that(res['title'], 'My Calendars')
+            assert_that(res.subcomponents, has_length(2))
+            assert_that(res.subcomponents[0]['summary'], is_(u'tennis'))
+            assert_that(res.subcomponents[1]['summary'], is_(u'tennis3'))
+
+            # add calendar 1 & 2
+            view._calendars =[calendar1, calendar2]
+
+            res = iCalendar.from_ical(view._build_icalendar())
+            assert_that(res['title'], 'My Calendars')
+            assert_that(res.subcomponents, has_length(3))
+            assert_that(res.subcomponents[0]['summary'], is_(u'golf'))
+            assert_that(res.subcomponents[1]['summary'], is_(u'tennis'))
+            assert_that(res.subcomponents[2]['summary'], is_(u'tennis3'))
