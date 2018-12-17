@@ -110,7 +110,7 @@ class UserCompositeCalendarDoomPostView(UserCompositeCalendarView):
                                  'message': translate(_('${name} should be an array of ntiids or empty.', mapping={'name': name}))
                              },
                              None)
-        return set(ntiids) if ntiids else None
+        return set([x for x in ntiids if x]) if ntiids else None
 
     def _context_ntiids(self):
         return self._ntiids('context_ntiids')
