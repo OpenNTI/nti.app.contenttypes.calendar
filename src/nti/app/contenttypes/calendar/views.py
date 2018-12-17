@@ -7,16 +7,13 @@
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
-from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 logger = __import__('logging').getLogger(__name__)
 
-import calendar
 import datetime
-import pytz
 
 from zope import component
-from zope.component.hooks import getSite
+from zope import interface
 
 from pyramid import httpexceptions as hexc
 
@@ -34,22 +31,26 @@ from nti.app.contentfile import validate_sources
 
 from nti.app.contentfolder.resources import is_internal_file_link
 
+from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
+
+from nti.app.contenttypes.calendar import MessageFactory as _
+
+from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.appserver.ugd_edit_views import UGDPutView
+from nti.appserver.interfaces import IUserViewTokenCreator
 
-from nti.appserver.interfaces import IDisplayableTimeProvider
+from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
-from nti.contenttypes.calendar.interfaces import ICalendarProvider
 from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
 
 from nti.dataserver import authorization as nauth
@@ -58,6 +59,12 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.externalization import to_external_object
+
+from nti.links.externalization import render_link
+
+from nti.links.interfaces import ILinkExternalHrefOnly
+
+from nti.links.links import Link
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
@@ -325,3 +332,41 @@ class CalendarCollectionView(AbstractAuthenticatedView,
                                    result[ITEMS],
                                    number_items_needed=result[TOTAL])
         return result
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarCollection,
+             permission=nauth.ACT_READ,
+             name=GENERATE_FEED_URL,
+             request_method='GET')
+class GenerateCalendarFeedURL(AbstractAuthenticatedView):
+    """
+    Generates and returns a calendar feed url.
+
+    XXX: Accept a param to reset or should we have a different endpoint?
+    Some users would do so by changing password; others we might have to
+    handle.
+    """
+
+    def __call__(self):
+        token_creator = component.queryUtility(IUserViewTokenCreator,
+                                               name='calendar_feed.ics')
+        token = token_creator.getTokenForUserId(self.context.user.username)
+        if not token:
+            logger.warn('Cannot find calendar feed token for user (%s)',
+                        self.context.user.username)
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _('Cannot find calendar feed token for user'),
+                             },
+                             None)
+        link = Link(self.context.user,
+                    rel='feed',
+                    elements=(self.context.__name__,
+                              '@@calendar_feed.ics',),
+                    params={'token': token})
+        interface.alsoProvides(link, ILinkExternalHrefOnly)
+        res = render_link(link)
+        return res

@@ -9,12 +9,8 @@ from __future__ import absolute_import
 
 import fudge
 
-from hamcrest import is_
 from hamcrest import has_length
 from hamcrest import assert_that
-
-from zope import component
-from zope import interface
 
 from nti.app.contenttypes.calendar.entity.decorators import _MyCalendarLinkDecorator
 from nti.app.contenttypes.calendar.entity.decorators import _UserCalendarLinkDecorator

@@ -18,8 +18,6 @@ from nti.appserver.workspaces import UserService
 from nti.dataserver.tests import mock_dataserver as mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
-from nti.dataserver.users import User
-
 from nti.externalization.externalization import toExternalObject
 
 
@@ -32,7 +30,7 @@ class TestWorkspaces(ApplicationLayerTest):
 
     @WithMockDSTrans
     def test_workspaces(self):
-        user = User.create_user(dataserver=self.ds, username='sjohnson@nextthought.com')
+        user = self._create_user('sjohnson@nextthought.com')
         with mock_dataserver.mock_db_trans(self.ds):
             service = UserService(user)
             workspace = [workspace for workspace in service.workspaces if workspace.name=='sjohnson@nextthought.com'][0]
@@ -44,3 +42,6 @@ class TestWorkspaces(ApplicationLayerTest):
 
             link = self.require_link_href_with_rel(result, 'export')
             assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@export'))
+
+            link = self.require_link_href_with_rel(result, 'GenerateFeedURL')
+            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@GenerateFeedURL'))
