@@ -189,3 +189,22 @@ class TestBulkCalendarExportView(CalendarLayerTest):
             assert_that(res.subcomponents[0]['summary'], is_(u'golf'))
             assert_that(res.subcomponents[1]['summary'], is_(u'tennis'))
             assert_that(res.subcomponents[2]['summary'], is_(u'tennis3'))
+
+        # post
+        calendar_url = '/dataserver2/users/%s/Calendars/@@export' % username
+        res = self.testapp.post(calendar_url, status=200)
+
+        cal = iCalendar.from_ical(res.body)
+        assert_that(cal['title'], is_('My Calendars'))
+        assert_that(cal.subcomponents, has_length(0))
+
+        res = self.testapp.post_json(calendar_url, params={'context_ntiids': False}, status=422).json_body
+        assert_that(res['message'], is_('context_ntiids should be an array of ntiids or empty.'))
+
+        res = self.testapp.post_json(calendar_url, params={'context_ntiids': 'abc'}, status=422).json_body
+        assert_that(res['message'], is_('context_ntiids should be an array of ntiids or empty.'))
+
+        res = self.testapp.post_json(calendar_url, params={'excluded_context_ntiids': False}, status=422).json_body
+        assert_that(res['message'], is_('excluded_context_ntiids should be an array of ntiids or empty.'))
+
+        self.testapp.post_json(calendar_url, params={'context_ntiids': ['a'], 'excluded_context_ntiids': []}, status=200)

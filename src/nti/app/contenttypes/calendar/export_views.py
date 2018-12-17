@@ -23,6 +23,7 @@ from icalendar import vDatetime
 from io import BytesIO
 
 from pyramid.view import view_config
+from pyramid.view import view_defaults
 
 from pyramid import httpexceptions as hexc
 
@@ -168,12 +169,13 @@ class CalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
         return self._make_response(data, filename)
 
 
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             context=ICalendarCollection,
-             request_method='GET',
-             permission=nauth.ACT_READ,
-             name=EXPORT_VIEW_NAME)
+@view_config(request_method='GET')
+@view_config(request_method='POST')
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               context=ICalendarCollection,
+               permission=nauth.ACT_READ,
+               name=EXPORT_VIEW_NAME)
 class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
 
     def _filename(self):
@@ -198,6 +200,9 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
         return cal.to_ical()
 
     def __call__(self):
-        data = self._build_icalendar()
-        filename = self._filename()
-        return self._make_response(data, filename)
+        try:
+            data = self._build_icalendar()
+            filename = self._filename()
+            return self._make_response(data, filename)
+        finally:
+            self.request.environ['nti.commit_veto'] = 'abort'

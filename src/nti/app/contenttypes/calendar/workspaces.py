@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.threadlocal import get_current_request
 
 from zope import component
@@ -17,13 +19,18 @@ from zope.cachedescriptors.property import Lazy
 
 from zope.container.contained import Contained
 
+from zope.i18n import translate
+
 from zope.security.interfaces import IPrincipal
 
 from nti.app.contenttypes.calendar import CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
+from nti.app.contenttypes.calendar import MessageFactory as _
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.workspaces.interfaces import IUserWorkspace
 
@@ -73,13 +80,33 @@ class CalendarCollection(Contained):
     def _request(self):
         return getattr(self, 'request', None) or get_current_request()
 
+    def _ntiids(self, name):
+        result = None
+        if self._request:
+            if name in self._request.params:
+                result = self._request.params.getall(name)
+            else:
+                try:
+                    body = self._request.json_body
+                    result = body.get(name)
+                except ValueError:
+                    pass
+                else:
+                    if result is not None and not isinstance(result, list):
+                        raise_json_error(self._request,
+                                         hexc.HTTPUnprocessableEntity,
+                                         {
+                                             'message': translate(_('${name} should be an array of ntiids or empty.', mapping={'name': name}))
+                                         },
+                                         None)
+
+        return set([x for x in result if x]) if result else None
+
     def _context_ntiids(self):
-        result = self._request.params.getall('context_ntiids') if self._request else None
-        return [x for x in result or () if x]
+        return self._ntiids('context_ntiids')
 
     def _excluded_context_ntiids(self):
-        result = self._request.params.getall('excluded_context_ntiids') if self._request else None
-        return [x for x in result or () if x]
+        return self._ntiids('excluded_context_ntiids')
 
     @Lazy
     def calendars(self):
