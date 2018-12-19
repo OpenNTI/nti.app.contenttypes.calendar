@@ -13,6 +13,8 @@ logger = __import__('logging').getLogger(__name__)
 from datetime import datetime
 from datetime import timedelta
 
+from six.moves import urllib_parse
+
 from zope import component
 from zope import interface
 
@@ -384,5 +386,5 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
                               '@@calendar_feed.ics',),
                     params={'token': token})
         interface.alsoProvides(link, ILinkExternalHrefOnly)
-        res = render_link(link)
-        return res
+        feed_url = render_link(link)
+        return urllib_parse.urljoin(self.request.application_url, feed_url)
