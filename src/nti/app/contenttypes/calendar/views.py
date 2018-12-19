@@ -10,7 +10,8 @@ from __future__ import absolute_import
 
 logger = __import__('logging').getLogger(__name__)
 
-import datetime
+from datetime import datetime
+from datetime import timedelta
 
 from zope import component
 from zope import interface
@@ -213,7 +214,7 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
     def _time_param(self, pname):
         timestamp = self._params.get(pname)
         timestamp = float(timestamp) if timestamp is not None else None
-        return datetime.datetime.utcfromtimestamp(timestamp) if timestamp else None
+        return datetime.utcfromtimestamp(timestamp) if timestamp else None
 
     def _str_param(self, pname):
         val = self._params.get(pname)
@@ -358,10 +359,13 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
                                                 self.CALENDAR_TOKEN_SCOPE)
         if not token:
             # Currently, we'll implicitly create the token for the user
+            # By default, expire in one year
             token_container = IUserTokenContainer(self.remoteUser)
+            one_year_later = datetime.utcnow() + timedelta(days=365)
             user_token = UserToken(title=u"Calendar feed token",
                                    description=u"auto-generated feed token",
-                                   scopes=(self.CALENDAR_TOKEN_SCOPE,))
+                                   scopes=(self.CALENDAR_TOKEN_SCOPE,),
+                                   expiration_date=one_year_later)
             token_container.store_token(user_token)
             token = token_creator.getTokenForUserId(self.context.user.username,
                                                     self.CALENDAR_TOKEN_SCOPE)
