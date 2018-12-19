@@ -55,6 +55,10 @@ from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
 
 from nti.dataserver import authorization as nauth
 
+from nti.dataserver.users.interfaces import IUserTokenContainer
+
+from nti.dataserver.users.tokens import UserToken
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
@@ -343,25 +347,33 @@ class CalendarCollectionView(AbstractAuthenticatedView,
 class GenerateCalendarFeedURL(AbstractAuthenticatedView):
     """
     Generates and returns a calendar feed url.
-
-    XXX: Accept a param to reset or should we have a different endpoint?
-    Some users would do so by changing password; others we might have to
-    handle.
     """
+
+    CALENDAR_TOKEN_SCOPE = u"calendar:feed"
 
     def __call__(self):
         token_creator = component.queryUtility(IUserViewTokenCreator,
                                                name='calendar_feed.ics')
-        token = token_creator.getTokenForUserId(self.context.user.username)
+        token = token_creator.getTokenForUserId(self.context.user.username,
+                                                self.CALENDAR_TOKEN_SCOPE)
         if not token:
-            logger.warn('Cannot find calendar feed token for user (%s)',
-                        self.context.user.username)
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                 'message': _('Cannot find calendar feed token for user'),
-                             },
-                             None)
+            # Currently, we'll implicitly create the token for the user
+            token_container = IUserTokenContainer(self.remoteUser)
+            user_token = UserToken(title=u"Calendar feed token",
+                                   description=u"auto-generated feed token",
+                                   scopes=(self.CALENDAR_TOKEN_SCOPE,))
+            token_container.store_token(user_token)
+            token = token_creator.getTokenForUserId(self.context.user.username,
+                                                    self.CALENDAR_TOKEN_SCOPE)
+            self.request.environ['nti.request_had_transaction_side_effects'] = True
+#             logger.warn('Cannot find calendar feed token for user (%s)',
+#                         self.context.user.username)
+#             raise_json_error(self.request,
+#                              hexc.HTTPUnprocessableEntity,
+#                              {
+#                                  'message': _('Cannot find calendar feed token for user'),
+#                              },
+#                              None)
         link = Link(self.context.user,
                     rel='feed',
                     elements=(self.context.__name__,
