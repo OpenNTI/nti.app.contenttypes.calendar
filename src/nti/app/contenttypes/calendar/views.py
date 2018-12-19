@@ -365,7 +365,7 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
             token_container.store_token(user_token)
             token = token_creator.getTokenForUserId(self.context.user.username,
                                                     self.CALENDAR_TOKEN_SCOPE)
-
+            self.request.environ['nti.request_had_transaction_side_effects'] = True
 #             logger.warn('Cannot find calendar feed token for user (%s)',
 #                         self.context.user.username)
 #             raise_json_error(self.request,
