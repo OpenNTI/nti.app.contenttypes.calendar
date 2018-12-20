@@ -74,18 +74,6 @@ class UserCompositeCalendarView(CalendarContentsGetView):
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
              context=ICalendarCollection,
-             request_method='GET',
-             permission=nauth.ACT_READ,
-             name='calendar_feed.ics')
-class CalendarContentsFeedView(UserCompositeCalendarView):
-
-    _DEFAULT_BATCH_SIZE = None
-    _DEFAULT_BATCH_START = None
-
-
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             context=ICalendarCollection,
              request_method='POST',
              permission=nauth.ACT_READ,
              name=EVENTS_VIEW_NAME)

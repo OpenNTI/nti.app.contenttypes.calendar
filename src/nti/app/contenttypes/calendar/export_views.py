@@ -11,10 +11,7 @@ from __future__ import absolute_import
 logger = __import__('logging').getLogger(__name__)
 
 import datetime
-import os
 import pytz
-import shutil
-import tempfile
 
 from icalendar import Calendar as _iCalendar
 from icalendar import Event as _iEvent
@@ -24,8 +21,6 @@ from io import BytesIO
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-
-from pyramid import httpexceptions as hexc
 
 from requests.structures import CaseInsensitiveDict
 
@@ -40,10 +35,6 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
-
-from nti.base._compat import text_
-
-from nti.cabinet.filer import DirectoryFiler
 
 from nti.common.string import is_true
 
@@ -143,7 +134,7 @@ class CalendarExportMixin(object):
     def _make_response(self, data, filename):
         response = self.request.response
         response.content_encoding = 'identity'
-        response.content_type = 'text/ics; charset=UTF-8'
+        response.content_type = 'text/calendar; charset=UTF-8'
         response.content_disposition = 'attachment; filename="%s"' % filename
 
         stream = BytesIO()
@@ -206,3 +197,14 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
             return self._make_response(data, filename)
         finally:
             self.request.environ['nti.commit_veto'] = 'abort'
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarCollection,
+             request_method='GET',
+             permission=nauth.ACT_READ,
+             name='calendar_feed.ics')
+class CalendarContentsFeedView(BulkCalendarExportView):
+    pass
+
