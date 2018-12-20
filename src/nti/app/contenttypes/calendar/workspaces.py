@@ -134,7 +134,7 @@ class CalendarCollection(Contained):
     @property
     def links(self):
         result = []
-        for rel in (EVENTS_VIEW_NAME, EXPORT_VIEW_NAME, GENERATE_FEED_URL):
+        for rel in (EVENTS_VIEW_NAME, EXPORT_VIEW_NAME):
             result.append( Link(self.user,
                                 rel=rel,
                                 elements=(self.__name__,
