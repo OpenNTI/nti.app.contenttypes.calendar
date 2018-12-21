@@ -11,12 +11,8 @@ from __future__ import absolute_import
 logger = __import__('logging').getLogger(__name__)
 
 from datetime import datetime
-from datetime import timedelta
-
-from six.moves import urllib_parse
 
 from zope import component
-from zope import interface
 
 from pyramid import httpexceptions as hexc
 
@@ -41,12 +37,12 @@ from nti.app.contenttypes.calendar import MessageFactory as _
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
+from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
+
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
-
-from nti.appserver.interfaces import IUserViewTokenCreator
 
 from nti.appserver.ugd_edit_views import UGDPutView
 
@@ -58,20 +54,10 @@ from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
 
 from nti.dataserver import authorization as nauth
 
-from nti.dataserver.users.interfaces import IUserTokenContainer
-
-from nti.dataserver.users.tokens import UserToken
-
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.externalization import to_external_object
-
-from nti.links.externalization import render_link
-
-from nti.links.interfaces import ILinkExternalHrefOnly
-
-from nti.links.links import Link
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
@@ -352,39 +338,5 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
     Generates and returns a calendar feed url.
     """
 
-    CALENDAR_TOKEN_SCOPE = u"calendar:feed"
-
     def __call__(self):
-        token_creator = component.queryUtility(IUserViewTokenCreator,
-                                               name='calendar_feed.ics')
-        token = token_creator.getTokenForUserId(self.context.user.username,
-                                                self.CALENDAR_TOKEN_SCOPE)
-        if not token:
-            # Currently, we'll implicitly create the token for the user
-            # By default, expire in one year
-            token_container = IUserTokenContainer(self.remoteUser)
-            one_year_later = datetime.utcnow() + timedelta(days=365)
-            user_token = UserToken(title=u"Calendar feed token",
-                                   description=u"auto-generated feed token",
-                                   scopes=(self.CALENDAR_TOKEN_SCOPE,),
-                                   expiration_date=one_year_later)
-            token_container.store_token(user_token)
-            token = token_creator.getTokenForUserId(self.context.user.username,
-                                                    self.CALENDAR_TOKEN_SCOPE)
-            self.request.environ['nti.request_had_transaction_side_effects'] = True
-#             logger.warn('Cannot find calendar feed token for user (%s)',
-#                         self.context.user.username)
-#             raise_json_error(self.request,
-#                              hexc.HTTPUnprocessableEntity,
-#                              {
-#                                  'message': _('Cannot find calendar feed token for user'),
-#                              },
-#                              None)
-        link = Link(self.context.user,
-                    rel='feed',
-                    elements=(self.context.__name__,
-                              '@@calendar_feed.ics',),
-                    params={'token': token})
-        interface.alsoProvides(link, ILinkExternalHrefOnly)
-        feed_url = render_link(link)
-        return urllib_parse.urljoin(self.request.application_url, feed_url)
+        return generate_ics_feed_url(self.context.user, self.request)
