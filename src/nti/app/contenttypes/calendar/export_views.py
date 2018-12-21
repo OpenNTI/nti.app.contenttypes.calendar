@@ -36,6 +36,8 @@ from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
+from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
+
 from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
@@ -182,6 +184,7 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
     def _build_icalendar(self):
         cal = _iCalendar()
         cal['title'] = u'My Calendars'
+        cal['URL'] = generate_ics_feed_url(self.context.user, self.request)
 
         dt_stamp = self._transform_datetime(datetime.datetime.utcnow())
         for x in self._calendars:
