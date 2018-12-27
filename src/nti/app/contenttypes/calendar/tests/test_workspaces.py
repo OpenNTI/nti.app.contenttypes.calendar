@@ -42,6 +42,3 @@ class TestWorkspaces(ApplicationLayerTest):
 
             link = self.require_link_href_with_rel(result, 'export')
             assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@export'))
-
-            link = self.require_link_href_with_rel(result, 'GenerateFeedURL')
-            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@GenerateFeedURL'))

@@ -36,6 +36,8 @@ from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
 from nti.app.contenttypes.calendar.export_views import BulkCalendarExportView
 
+from nti.app.contenttypes.calendar.workspaces import CalendarCollection
+
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contenttypes.calendar.model import Calendar
@@ -139,6 +141,10 @@ class TestBulkCalendarExportView(CalendarLayerTest):
         with mock_dataserver.mock_db_trans(self.ds):
             user = self._create_user(username)
 
+            class _mock_workspace(object):
+                def __init__(self, user):
+                    self.user = user
+
         calendar_url = '/dataserver2/users/%s/Calendars/@@export' % username
         res = self.testapp.get(calendar_url, status=200)
 
@@ -152,6 +158,7 @@ class TestBulkCalendarExportView(CalendarLayerTest):
                     self.user = user
 
             view = BulkCalendarExportView(self.request)
+            view.context = CalendarCollection(_mock_workspace(user))
             view._calendars = []
 
             res = iCalendar.from_ical(view._build_icalendar())
