@@ -3,6 +3,10 @@ from setuptools import setup
 from setuptools import find_packages
 
 entry_points = {
+    'console_scripts': [
+        "nti_calendar_dispatcher = nti.app.contenttypes.calendar.scripts.dispatcher:main",
+        "nti_calendar_processor = nti.app.contenttypes.calendar.scripts.processor:main",
+    ],
     "z3c.autoinclude.plugin": [
         'target = nti.app',
     ],
