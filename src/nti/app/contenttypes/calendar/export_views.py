@@ -7,6 +7,7 @@
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
+from nti.dataserver.interfaces import IDataserverFolder
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -37,6 +38,8 @@ from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
+
+from nti.appserver.workspaces.interfaces import IUserService
 
 from nti.common.string import is_true
 
@@ -184,7 +187,7 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
     def _build_icalendar(self):
         cal = _iCalendar()
         cal['title'] = u'My Calendars'
-        cal['URL'] = generate_ics_feed_url(self.context.user, self.request)
+        cal['URL'] = generate_ics_feed_url(self.remoteUser, self.request)
 
         dt_stamp = self._transform_datetime(datetime.datetime.utcnow())
         for x in self._calendars:
@@ -204,10 +207,14 @@ class BulkCalendarExportView(AbstractAuthenticatedView, CalendarExportMixin):
 
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
-             context=ICalendarCollection,
+             context=IDataserverFolder,
              request_method='GET',
              permission=nauth.ACT_READ,
              name='calendar_feed.ics')
 class CalendarContentsFeedView(BulkCalendarExportView):
-    pass
+
+    @Lazy
+    def _calendars(self):
+        service = IUserService(self.remoteUser)
+        return ICalendarCollection(service.user_workspace).container
 

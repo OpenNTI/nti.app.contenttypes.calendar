@@ -15,6 +15,7 @@ from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_properties
 from hamcrest import contains_string
+from hamcrest import less_than_or_equal_to
 
 from datetime import datetime
 
@@ -348,8 +349,14 @@ class TestCalendarViews(CalendarLayerTest):
         res = self.testapp.get(generate_feed_url)
         feed_url = res.json_body
         assert_that(feed_url,
-                    contains_string('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@calendar_feed.ics?token='))
+                    contains_string('/dataserver2/@@calendar_feed.ics?token='))
         res = self.testapp.get(generate_feed_url)
         assert_that(res.json_body,
                     is_(feed_url))
         self.testapp.get(feed_url)
+
+        # Now test size constraints (google calendar only works with a
+        # <256 char url)
+        assert_that(len(feed_url), less_than_or_equal_to(256))
+        longer_url = feed_url.replace('localhost', 'epiccharterschools.nextthought.com')
+        assert_that(len(longer_url), less_than_or_equal_to(256))
