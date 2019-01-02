@@ -8,6 +8,9 @@ from __future__ import absolute_import
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
 
 import fudge
+import time
+
+from datetime import datetime
 
 from hamcrest import is_
 from hamcrest import has_length
@@ -41,6 +44,8 @@ class TestNotification(ApplicationLayerTest):
         user1 = User.create_user(username=u'test001')
         user2 = User.create_user(username=u'test002')
         class _MockEventNotifier(CalendarEventNotifier):
+            def _calendar_context(self):
+                return u'Course'
             def _recipients(self):
                 return [user1, u'abc', user2, None]
 
@@ -72,6 +77,7 @@ class TestNotification(ApplicationLayerTest):
 
         event = CalendarEvent(title=u'abc')
         notifier = _MockEventNotifier(event)
+        notifier._remaining = 25
         notifier.notify()
         assert_that(_mailer.data, has_length(0))
 

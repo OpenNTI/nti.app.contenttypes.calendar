@@ -8,6 +8,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+import calendar
+import math
+import time
+
+from zope.cachedescriptors.property import Lazy
+
 from nameparser import HumanName
 
 from pyramid.request import Request
@@ -31,6 +37,8 @@ from nti.mailer.interfaces import IEmailAddressable
 from nti.mailer.interfaces import ITemplatedMailer
 from nti.mailer.interfaces import EmailAddresablePrincipal
 
+logger = __import__('logging').getLogger(__name__)
+
 
 def _mailer():
     return component.getUtility(ITemplatedMailer)
@@ -47,15 +55,33 @@ class CalendarEventNotifier(object):
         self.context = calendar_event
 
     def _subject(self):
-        return u'Upcoming calendar event'
+        return 'Upcoming calendar event'
 
     def _recipients(self):
         raise NotImplementedError
+
+    def _calendar_context(self):
+        raise NotImplementedError
+
+    @Lazy
+    def _remaining(self):
+        start = calendar.timegm(self.context.start_time.utctimetuple())
+        remaining = start - time.time()
+        return int(math.ceil(remaining/60)) if remaining > 0 else None
+
+    @Lazy
+    def _notable_text(self):
+        msg = u"{event_title} ({calendar_context}) is starting within {remaining} minutes."
+        return msg.format(event_title=self.context.title,
+                          calendar_context=self._calendar_context(),
+                          remaining=self._remaining)
 
     def _template_args(self, user, **kwargs):
         realname = IFriendlyNamed(user).realname
         template_args = {
             'first_name': HumanName(realname).first if realname else IEmailAddressable(user).email,
+            'notable_text': self._notable_text,
+            'calendar_event': self.context
         }
         template_args.update(kwargs)
         return template_args
@@ -73,6 +99,11 @@ class CalendarEventNotifier(object):
         return request
 
     def _do_send(self, mailer, *args, **kwargs):
+        # do not send if the event has started?
+        if self._remaining is None:
+            logger.debug("Ignoring the notification of started calendar event (title=%s, start_time=%s).", self.context.title, self.context.start_time)
+            return
+
         for user in self._recipients() or ():
             if not IUser.providedBy(user):
                 continue
