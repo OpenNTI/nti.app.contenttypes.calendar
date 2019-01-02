@@ -7,30 +7,16 @@ from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
 
-import fudge
-
-from fudge.patcher import with_patched_object
-
 from hamcrest import is_
-from hamcrest import contains
 from hamcrest import not_none
-from hamcrest import has_entry
-from hamcrest import has_entries
 from hamcrest import has_length
-from hamcrest import has_properties
 from hamcrest import assert_that
-from hamcrest import contains_inanyorder
 
 from datetime import datetime
 
 from icalendar import Calendar as iCalendar
 
-from io import BytesIO
-
-from zipfile import ZipFile
-
 from zope import interface
-from zope import component
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
@@ -46,8 +32,6 @@ from nti.contenttypes.calendar.model import CalendarEvent
 from nti.coremetadata.interfaces import IContained
 
 from nti.dataserver.tests import mock_dataserver
-
-from nti.dataserver.users.users import User
 
 from nti.dataserver.authorization import ROLE_ADMIN
 
@@ -159,6 +143,7 @@ class TestBulkCalendarExportView(CalendarLayerTest):
 
             view = BulkCalendarExportView(self.request)
             view.context = CalendarCollection(_mock_workspace(user))
+            view.remoteUser = user
             view._calendars = []
 
             res = iCalendar.from_ical(view._build_icalendar())

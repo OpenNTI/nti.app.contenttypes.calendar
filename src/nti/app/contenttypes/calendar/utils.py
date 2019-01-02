@@ -18,9 +18,9 @@ from six.moves import urllib_parse
 from zope import component
 from zope import interface
 
-from nti.app.contenttypes.calendar import CALENDARS
-
 from nti.appserver.interfaces import IUserViewTokenCreator
+
+from nti.dataserver.interfaces import IDataserverFolder
 
 from nti.dataserver.users.interfaces import IUserTokenContainer
 
@@ -31,6 +31,8 @@ from nti.links.externalization import render_link
 from nti.links.interfaces import ILinkExternalHrefOnly
 
 from nti.links.links import Link
+
+from nti.traversal.traversal import find_interface
 
 CALENDAR_TOKEN_SCOPE = u"calendar:feed"
 
@@ -56,10 +58,10 @@ def generate_ics_feed_url(user, request):
         token = token_creator.getTokenForUserId(user.username,
                                                 CALENDAR_TOKEN_SCOPE)
         request.environ['nti.request_had_transaction_side_effects'] = True
-    link = Link(user,
+    ds2 = find_interface(user, IDataserverFolder)
+    link = Link(ds2,
                 rel='feed',
-                elements=(CALENDARS,
-                          '@@calendar_feed.ics',),
+                elements=('@@calendar_feed.ics',),
                 params={'token': token})
     interface.alsoProvides(link, ILinkExternalHrefOnly)
     feed_url = render_link(link)
