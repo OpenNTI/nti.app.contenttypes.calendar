@@ -77,7 +77,7 @@
                                 <tr width="100%">
                                     <td valign="top" align="left" style="padding-left:18px; padding-bottom: 10px;">
                                         <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; font-weight:bold; margin: 0;color:#7f7f7f;">Hi ${options/first_name}!</div>
-                                        <div>
+                                        <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; color:#a3a3a4;">
                                             ${options/notable_text}
                                         </div>
                                     </td>
