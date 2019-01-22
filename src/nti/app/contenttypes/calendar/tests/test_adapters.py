@@ -46,3 +46,6 @@ class TestAdapters(ApplicationLayerTest):
 
         event.ntiid = u'test_ntiid'
         assert_that(provider(), is_('/NextThoughtWebApp/id/test_ntiid'))
+
+        mock_request.is_callable().returns(None)
+        assert_that(provider(), is_(None))

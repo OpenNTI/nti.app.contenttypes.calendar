@@ -81,6 +81,8 @@ def _web_root():
 def generate_calendar_event_url(calendar_event, request=None):
     if request is None:
         request = get_current_request()
+    if request is None:
+        return None
 
     ntiid = calendar_event.ntiid
     if ntiid:
