@@ -1,3 +1,3 @@
 Hi ${first_name}!
 
-${notable_text}
+${event_title} (${calendar_context}) is starting within ${event_remaining} minutes (see ${event_url}).

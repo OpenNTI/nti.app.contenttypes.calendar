@@ -78,7 +78,7 @@
                                     <td valign="top" align="left" style="padding-left:18px; padding-bottom: 10px;">
                                         <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; font-weight:bold; margin: 0;color:#7f7f7f;">Hi ${options/first_name}!</div>
                                         <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; color:#a3a3a4;">
-                                            ${options/notable_text}
+                                            <a style="color: #3fb3f6;" href="" tal:attributes="href options/event_url" tal:content="options/event_title">Unknown title</a> (${options/calendar_context}) is starting within ${options/event_remaining} minutes.
                                         </div>
                                     </td>
                                 </tr>
