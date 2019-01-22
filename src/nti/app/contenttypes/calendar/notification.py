@@ -101,7 +101,7 @@ class CalendarEventNotifier(object):
     def _do_send(self, mailer, *args, **kwargs):
         # do not send if the event has started?
         if self._remaining is None:
-            logger.debug("Ignoring the notification of started calendar event (title=%s, start_time=%s).", self.context.title, self.context.start_time)
+            logger.warning("Ignoring the notification of started calendar event (title=%s, start_time=%s).", self.context.title, self.context.start_time)
             return
 
         for user in self._recipients() or ():
