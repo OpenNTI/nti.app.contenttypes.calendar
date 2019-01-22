@@ -100,8 +100,12 @@ class CalendarEventCreationView(AbstractAuthenticatedView,
                                 ModeledContentUploadRequestUtilsMixin,
                                 MultiPartHandleMixin):
 
+    def _transform(self, contentObject):
+        return contentObject
+
     def __call__(self):
         contentObject = self.readCreateUpdateContentObject(self.remoteUser)
+        contentObject = self._transform(contentObject)
         self.context.store_event(contentObject)
 
         # multi-part data
