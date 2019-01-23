@@ -1,93 +1,121 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:metal="http://xml.zope.org/namespaces/metal"
       xmlns:tal="http://xml.zope.org/namespaces/tal">
-    <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-        <title>Notifications</title>
-        <style metal:use-macro="macro:style">
-            #green-bar {
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>NTI Calendar Notification</title>
+    <style>
+        #green-bar {
             background-color: #89be3c;
             width: 100%;
             height: 5px;
-            margin-left: -30px;
-            padding-right: 40px;
-            }
-            #logo-bar {
+        }
+
+        #logo-bar {
             margin-top: 20px;
             margin-bottom: 30px;
-            }
-            body {
-            margin-left: 30px;
-            margin-right: 0px;
-            font-family: Arial, sans-serif;
-            font-size: 14pt;
-            color: #757474;
-            }
-            .avatar_initials {
-                position: absolute;
-                top: 0;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background-size: cover;
-                background-position: center center;
-                background-repeat: no-repeat;
-                top: 50%;
-                width: 100%;
-                line-height: 4em;
-                margin-top: -2em;
-                font-weight: 600;
-                font-size: 36px;
-                font-weight: bold;
-            }
-            a {
+            margin-left:20px;
+        }
+
+        a {
             text-decoration: none;
             color: #3fb3f6;
-            }
-            .tterm, strong {
-            font-weight: bold;
-            color: #494949;
-            }
-            h1, h2, h3, h4, h5, h6 {
-            font-weight: bold;
-            color: #999;
-            }
-        </style>
-    </head>
-    <body>
-        <div metal:use-macro="macro:header">
-        <div id="green-bar"></div>
-        <div id="logo-bar">
-            <img src="http://d2ixlfeu83tci.cloudfront.net/images/email_logo.png" width="177" height="25"
-            alt="NextThought Logo" />
-        </div>
+        }
+
+        body {
+            margin-right: 0px;
+            background-color: #EEF0F1;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 20px;
+            color: #757474;
+            word-break: break-word;
+            padding-top: 40px;
+            padding-bottom: 80px;
+        }
+
+        #main-div {
+            margin-top: 20px;
+            margin-left: 160px;
+            margin-right: 160px;
+        }
+
+        td.col_first {
+            width:70px;
+        }
+    </style>
+</head>
+<body>
+    <div style="width:780px; background-color: #fff; margin: auto;">
+
+        <div>
+            <div id="green-bar"></div>
+            <div id="logo-bar">
+                <img src="https://d2ixlfeu83tci.cloudfront.net/images/email_logo.png" width="177" height="25" alt="NextThought Logo" />
+            </div>
         </div>
 
-        <table cellspacing="0" cellpadding="0" border="0"
-            style="color: #333; background: #fff; padding: 0; margin:
-            0; width: 100%; font: 15px/1.25em 'Helvetica Neue', Arial,
-            Helvetica;">
-            <tbody>
-                <tr width="100%">
-                    <td valign="top" align="left" style="background: #EEF0F1; font: 15px/1.25em 'Helvetica Neue', Arial, Helvetica;" >
-                        <table style="border: none; padding: 0 18px; margin: 50px auto; width: 500px;">
-                            <tbody>
-                                <tr width="100%">
-                                    <td valign="top" align="left" style="padding-left:18px; padding-bottom: 10px;">
-                                        <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; font-weight:bold; margin: 0;color:#7f7f7f;">Hi ${options/first_name}!</div>
-                                        <div style="font: 16px/1.25em 'Helvetica Neue', Arial, Helvetica; color:#a3a3a4;">
-                                            <a style="color: #3fb3f6;" href="" tal:attributes="href options/event_url" tal:content="options/event_title">Unknown title</a> (${options/calendar_context}) is starting within ${options/event_remaining} minutes.
-                                        </div>
-                                    </td>
-                                </tr>
-                                </tbody>
-                        </table>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div id="main-div">
+            <table border="0" style="padding: 0; margin:0; width: 100%; line-height:24px;">
+                <tbody>
+                    <tr>
+                        <!--
+                        <td class="col_first" style="border-right: 1.5px solid #EEF0F1;text-align:center; line-height:28px;">
+                                <span style="color:red;font-weight:bold;font-size:10px;padding-right:10px;">OCT</span><br/>
+                                <span style="font-size:36px; font-weight:100;padding-right:10px;">24</span>
+                        </td>
+                        <td style="font-size:24px; font-weight:100;line-height:30px; padding-left:15px; text-transform:capitalize; vertical-align:text-top; padding-top:5px;">
+                            <span tal:content="options/event_title">Unknown Calendar Event Title</span>
+                        </td>
+                        -->
+                        <td colspan="2" style="font-size:24px; font-weight:100;line-height:30px; text-transform:capitalize; vertical-align:text-top;">
+                            <span tal:content="options/event_title">Unknown Calendar Event Title</span>
+                        </td>
+                    </tr>
 
-    </body>
+                    <metal:block tal:condition="options/event_description">
+                        <tr>
+                            <td colspan="2" style="padding-top:20px">
+                                <span tal:content="options/event_description"></span>
+                            </td>
+                        </tr>
+                    </metal:block>
+
+                    <tr>
+                        <td class="col_first" style="font-size:11px; color:#b8b8b8; font-weight:bold; padding-top:30px; vertical-align:text-top;">START</td>
+                        <td style="padding-top:30px; vertical-align:text-top;">
+                            <span tal:content="options/event_start"></span>
+                        </td>
+                    </tr>
+
+                    <metal:block tal:condition="options/event_location">
+                        <tr>
+                            <td class="col_first" style="font-size:11px; color:#b8b8b8; font-weight:bold; padding-top:15px; vertical-align:text-top;">LOCATION</td>
+                            <td style="padding-top:15px; vertical-align:text-top;">
+                                <span tal:content="options/event_location"></span>
+                            </td>
+                        </tr>
+                    </metal:block>
+
+                    <tr>
+                        <td class="col_first" style="padding-top: 0px"> </td>
+                        <td style="padding-top: 0px; vertical-align: text-top;">
+                            <a href="" tal:attributes="href options/event_url">View Details</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 40px; padding-bottom: 30px; text-align:left;font-weight:normal;color:#7d7c7c;">
+                If you feel this email was sent in error, or this account was created without your consent,
+                you may email <a href="mailto:support@nextthought.com" target="_top" style="color: #7d7c7c;"><u>support@nextthought.com</u></a>
+            </div>
+
+        </div>
+
+    </div>
+</body>
 </html>

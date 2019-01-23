@@ -71,6 +71,10 @@ class CalendarEventNotifier(object):
         return int(math.ceil(remaining/60)) if remaining > 0 else None
 
     @Lazy
+    def _event_start(self):
+        return "Beginning in {0} minutes.".format(self._remaining)
+
+    @Lazy
     def _event_url(self):
         # For testing.
         return generate_calendar_event_url(self.context)
@@ -81,9 +85,11 @@ class CalendarEventNotifier(object):
         template_args.update({
             'first_name': HumanName(realname).first if realname else IEmailAddressable(user).email,
             'event_title': self.context.title,
-            'event_remaining': self._remaining,
+            'event_description': self.context.description,
+            'event_start': self._event_start,
+            'event_location': self.context.location,
             'event_url': kwargs.get('event_url', None) or self._event_url,
-            'calendar_context': self._calendar_context()
+            'event_remaining': self._remaining
         })
         return template_args
 
