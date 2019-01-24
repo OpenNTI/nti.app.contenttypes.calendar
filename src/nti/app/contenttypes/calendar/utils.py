@@ -13,11 +13,14 @@ logger = __import__('logging').getLogger(__name__)
 from datetime import datetime
 from datetime import timedelta
 
+from pyramid.threadlocal import get_current_request
+
 from six.moves import urllib_parse
 
 from zope import component
 from zope import interface
 
+from nti.appserver.interfaces import IApplicationSettings
 from nti.appserver.interfaces import IUserViewTokenCreator
 
 from nti.dataserver.interfaces import IDataserverFolder
@@ -66,3 +69,27 @@ def generate_ics_feed_url(user, request):
     interface.alsoProvides(link, ILinkExternalHrefOnly)
     feed_url = render_link(link)
     return urllib_parse.urljoin(request.application_url, feed_url)
+
+
+def _web_root():
+    settings = component.getUtility(IApplicationSettings)
+    web_root = settings.get('web_app_root', '/NextThoughtWebApp/')
+    # It MUST end with a trailing slash, but we don't want that
+    return web_root[:-1]
+
+
+def generate_calendar_event_url(calendar_event, request=None):
+    if request is None:
+        request = get_current_request()
+    if request is None:
+        return None
+
+    ntiid = calendar_event.ntiid
+    if ntiid:
+        ntiid = ntiid.replace( 'tag:nextthought.com,2011-10:', '')
+        web_root = _web_root()
+        return request.route_url('objects.generic.traversal',
+                                 'id',
+                                 ntiid,
+                                 traverse=()).replace('/dataserver2', web_root)
+    return request.resource_url(calendar_event)

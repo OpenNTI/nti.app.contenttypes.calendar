@@ -25,6 +25,7 @@ from zope import component
 from zope import interface
 
 from nti.app.contenttypes import calendar as calendar_pkg
+from nti.app.contenttypes.calendar.utils import generate_calendar_event_url
 
 from nti.contenttypes.calendar.interfaces import ICalendarEventNotifier
 
@@ -68,25 +69,32 @@ class CalendarEventNotifier(object):
         return int(math.ceil(remaining/60)) if remaining > 0 else None
 
     @Lazy
-    def _notable_text(self):
-        msg = u"{event_title} ({calendar_context}) is starting within {remaining} minutes."
-        return msg.format(event_title=self.context.title,
-                          calendar_context=self._calendar_context(),
-                          remaining=self._remaining)
+    def _event_start(self):
+        return "Beginning in {0} minutes.".format(self._remaining)
+
+    @Lazy
+    def _event_url(self):
+        # For testing.
+        return generate_calendar_event_url(self.context)
 
     def _template_args(self, user, **kwargs):
         realname = IFriendlyNamed(user).realname
-        template_args = {
+        template_args = {}
+        template_args.update({
             'first_name': HumanName(realname).first if realname else IEmailAddressable(user).email,
-            'notable_text': self._notable_text,
-            'calendar_event': self.context
-        }
-        template_args.update(kwargs)
+            'event_title': self.context.title,
+            'event_description': self.context.description,
+            'event_start': self._event_start,
+            'event_location': self.context.location,
+            'event_url': kwargs.get('event_url', None) or self._event_url,
+            'event_remaining': self._remaining
+        })
         return template_args
 
     def _calendar_pkg(self):
         return calendar_pkg
 
+    @Lazy
     def _request(self):
         request = get_current_request()
         if request is None:
@@ -122,7 +130,7 @@ class CalendarEventNotifier(object):
                                                 template_args=self._template_args(user, **kwargs),
                                                 reply_to=None,
                                                 package=self._calendar_pkg(),
-                                                request=self._request(),
+                                                request=self._request,
                                                 text_template_extension=self.text_template_extension)
 
     def notify(self, *args, **kwargs):
