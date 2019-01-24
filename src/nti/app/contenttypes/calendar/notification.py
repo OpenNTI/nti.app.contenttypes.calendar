@@ -30,12 +30,10 @@ from nti.contenttypes.calendar.interfaces import ICalendarEventNotifier
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.users import User
 from nti.dataserver.users.interfaces import IFriendlyNamed
 
 from nti.mailer.interfaces import IEmailAddressable
 from nti.mailer.interfaces import ITemplatedMailer
-from nti.mailer.interfaces import EmailAddresablePrincipal
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -101,7 +99,8 @@ class CalendarEventNotifier(object):
     def _do_send(self, mailer, *args, **kwargs):
         # do not send if the event has started?
         if self._remaining is None:
-            logger.warning("Ignoring the notification of started calendar event (title=%s, start_time=%s).", self.context.title, self.context.start_time)
+            logger.warning("Ignoring the notification of started calendar event (title=%s, start_time=%s).",
+                           self.context.title, self.context.start_time)
             return
 
         for user in self._recipients() or ():
@@ -112,6 +111,11 @@ class CalendarEventNotifier(object):
             if not addr or not addr.email:
                 continue
 
+            # Info level for now
+            logger.info('Emailing calendar notification (%s) (%s) (%s)',
+                        user.username,
+                        addr.email,
+                        self.context.title)
             mailer.queue_simple_html_text_email(self.template,
                                                 subject=self._subject(),
                                                 recipients=[addr.email],
