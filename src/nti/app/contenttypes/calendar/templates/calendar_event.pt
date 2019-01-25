@@ -37,19 +37,13 @@
             padding-bottom: 80px;
         }
 
-        #main-div {
-            margin-top: 20px;
-            margin-left: 160px;
-            margin-right: 160px;
-        }
-
         td.col_first {
-            width:70px;
+            width: 60px;
         }
     </style>
 </head>
 <body>
-    <div style="width:780px; background-color: #fff; margin: auto;">
+    <div style="max-width:780px; background-color: #fff; margin: auto;">
 
         <div>
             <div id="green-bar"></div>
@@ -58,7 +52,7 @@
             </div>
         </div>
 
-        <div id="main-div">
+        <div style="max-width: 460px; margin:auto; margin-top: 20px; width:80%">
             <table border="0" style="padding: 0; margin:0; width: 100%; line-height:24px;">
                 <tbody>
                     <tr>
@@ -109,7 +103,7 @@
                 </tbody>
             </table>
 
-            <div style="margin-top: 60px; padding-bottom: 30px; text-align:left;font-weight:normal;color:#7d7c7c;">
+            <div style="margin:auto; margin-top: 60px; padding-bottom: 30px; text-align:left;font-weight:normal;color:#7d7c7c;">
                 If you feel this email was sent in error, or this account was created without your consent,
                 you may email <a href="mailto:support@nextthought.com" target="_top" style="color: #7d7c7c;"><u>support@nextthought.com</u></a>
             </div>
