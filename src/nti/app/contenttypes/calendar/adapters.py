@@ -12,6 +12,7 @@ from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar.utils import generate_calendar_event_url
+from nti.app.contenttypes.calendar.interfaces import ICalendarEventUIDProvider
 
 from nti.contenttypes.calendar.interfaces import ICalendar
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
@@ -36,3 +37,18 @@ class CalendarEventURLProvider(object):
 
     def __call__(self):
         return generate_calendar_event_url(self.calendar_event)
+
+
+@component.adapter(ICalendarEvent)
+@interface.implementer(ICalendarEventUIDProvider)
+class CalendarEventUIDProvider(object):
+    """
+    Default feed unique ID provider for :class:`ICalendarEvent`.
+    """
+    def __init__(self, context):
+        self.context = context
+
+    def __call__(self):
+        # May return None for dynamic events like assignment, webinar events etc,
+        # for which we would define their own providers.
+        return self.context.ntiid

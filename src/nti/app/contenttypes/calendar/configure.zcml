@@ -25,6 +25,10 @@
              for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
              provides="nti.contenttypes.calendar.interfaces.ICalendarEventURLProvider" />
 
+    <adapter factory=".adapters.CalendarEventUIDProvider"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
+             provides=".interfaces.ICalendarEventUIDProvider" />
+
     <adapter factory=".workspaces._calendar_collection_adapter" />
 
 	<adapter name="Calendars"

@@ -36,6 +36,7 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
+from nti.app.contenttypes.calendar.interfaces import ICalendarEventUIDProvider
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
 
@@ -71,6 +72,13 @@ class CalendarExportMixin(object):
             return self._transform_datetime(dt)
         return None
 
+    def _event_uid(self, calendar_event):
+        provider = ICalendarEventUIDProvider(calendar_event, None)
+        uid = provider() if provider else None
+        if not uid:
+            raise ValueError("Unknown calendar event '{title}'or no uid provider is specified.".format(title=calendar_event.title))
+        return uid
+
     def _build_ievent(self, source, dt_stamp):
         target = _iEvent()
         target['X-NTIID'] = source.ntiid or u''
@@ -94,6 +102,7 @@ class CalendarExportMixin(object):
             if val is not None:
                 target[target_attr] = val
 
+        target['UID'] = self._event_uid(source)
         return target
 
     def _build_icalendar(self, calendar):
