@@ -1,4 +1,4 @@
-Hi ${first_name}!
+Hi ${display_name}!
 
 You have an upcoming calendar event (${event_title}) beginning in ${event_remaining} minutes:
 

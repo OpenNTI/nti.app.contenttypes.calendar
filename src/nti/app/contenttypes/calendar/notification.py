@@ -12,6 +12,8 @@ import calendar
 import math
 import time
 
+from zc.displayname.interfaces import IDisplayNameGenerator
+
 from zope.cachedescriptors.property import Lazy
 
 from nameparser import HumanName
@@ -78,10 +80,10 @@ class CalendarEventNotifier(object):
         return generate_calendar_event_url(self.context)
 
     def _template_args(self, user, **kwargs):
-        realname = IFriendlyNamed(user).realname
+        display_name = component.getMultiAdapter((user, self._request), IDisplayNameGenerator)()
         template_args = {}
         template_args.update({
-            'first_name': HumanName(realname).first if realname else IEmailAddressable(user).email,
+            'display_name': display_name,
             'event_title': self.context.title,
             'event_description': self.context.description,
             'event_start': self._event_start,
