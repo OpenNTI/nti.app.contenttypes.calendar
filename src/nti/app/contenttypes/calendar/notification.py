@@ -12,28 +12,25 @@ import calendar
 import math
 import time
 
-from zc.displayname.interfaces import IDisplayNameGenerator
-
-from zope.cachedescriptors.property import Lazy
-
-from nameparser import HumanName
-
 from pyramid.request import Request
 
-from pyramid.threadlocal import get_current_request
 from pyramid.threadlocal import get_current_registry
+from pyramid.threadlocal import get_current_request
+
+from zc.displayname.interfaces import IDisplayNameGenerator
 
 from zope import component
 from zope import interface
 
-from nti.app.contenttypes import calendar as calendar_pkg
+from zope.cachedescriptors.property import Lazy
+
 from nti.app.contenttypes.calendar.utils import generate_calendar_event_url
+
+from nti.appserver.policies.interfaces import ISitePolicyUserEventListener
 
 from nti.contenttypes.calendar.interfaces import ICalendarEventNotifier
 
 from nti.dataserver.interfaces import IUser
-
-from nti.dataserver.users.interfaces import IFriendlyNamed
 
 from nti.mailer.interfaces import IEmailAddressable
 from nti.mailer.interfaces import ITemplatedMailer
@@ -94,7 +91,8 @@ class CalendarEventNotifier(object):
         return template_args
 
     def _calendar_pkg(self):
-        return calendar_pkg
+        policy = component.getUtility(ISitePolicyUserEventListener)
+        return getattr(policy, 'PACKAGE', None)
 
     @Lazy
     def _request(self):
