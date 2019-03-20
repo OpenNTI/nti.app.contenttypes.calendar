@@ -45,11 +45,12 @@
 <body>
     <div style="max-width:780px; background-color: #fff; margin: auto;">
 
-        <div>
-            <div id="green-bar"></div>
-            <div id="logo-bar">
-                <img src="https://d2ixlfeu83tci.cloudfront.net/images/email_logo.png" width="177" height="25" alt="NextThought Logo" />
-            </div>
+        <div metal:use-macro="macro:header">
+        <div id="green-bar"></div>
+        <div id="logo-bar">
+            <img src="http://d2ixlfeu83tci.cloudfront.net/images/email_logo.png" width="100%" height="50"
+            alt="NextThought Logo" />
+        </div>
         </div>
 
         <div style="max-width: 460px; margin:auto; margin-top: 20px; width:80%">
