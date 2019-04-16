@@ -114,19 +114,15 @@ class CalendarEventNotifier(object):
         for user in self._recipients() or ():
             if not IUser.providedBy(user):
                 continue
-
-            addr = IEmailAddressable(user, None)
-            if not addr or not addr.email:
-                continue
-
             # Info level for now
             logger.info('Emailing calendar notification (%s) (%s) (%s)',
                         user.username,
                         addr.email,
                         self.context.title)
+
             mailer.queue_simple_html_text_email(self.template,
                                                 subject=self._subject(),
-                                                recipients=[addr.email],
+                                                recipients=[user],
                                                 template_args=self._template_args(user, **kwargs),
                                                 reply_to=None,
                                                 package=self._calendar_pkg(),
