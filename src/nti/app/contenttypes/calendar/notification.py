@@ -117,7 +117,7 @@ class CalendarEventNotifier(object):
             # Info level for now
             logger.info('Emailing calendar notification (%s) (%s) (%s)',
                         user.username,
-                        addr.email,
+                        getattr(IEmailAddressable(user, None), 'email', user),
                         self.context.title)
 
             mailer.queue_simple_html_text_email(self.template,
