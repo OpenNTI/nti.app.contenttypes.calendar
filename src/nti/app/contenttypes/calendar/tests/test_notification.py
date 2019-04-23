@@ -76,15 +76,9 @@ class TestNotification(ApplicationLayerTest):
             event = CalendarEvent(title=u'abc')
             notifier = _MockEventNotifier(event)
             notifier._remaining = 25
-            notifier.notify()
-            assert_that(_mailer.data, has_length(0))
 
             addr = IEmailAddressable(user1, None)
             addr.email = u'abc@example.com'
-            notifier.notify()
-            assert_that(_mailer.data, has_length(1))
-
-            _mailer.clear()
             addr = IEmailAddressable(user2, None)
             addr.email = u'abc2@example.com'
 
@@ -98,7 +92,7 @@ class TestNotification(ApplicationLayerTest):
                                                                      'package': 'nti.app.products.ou',
                                                                      'request': not_none(),
                                                                      'text_template_extension': '.mak'}))
-            assert_that(_mailer.data[0].recipients[0], is_('abc@example.com'))
+            assert_that(_mailer.data[0].recipients[0], is_(user1))
 
             assert_that(_mailer.data[1], has_properties({'template': 'calendar_event',
                                                                      'subject': 'Upcoming calendar event',
@@ -108,4 +102,4 @@ class TestNotification(ApplicationLayerTest):
                                                                      'package': 'nti.app.products.ou',
                                                                      'request': not_none(),
                                                                      'text_template_extension': '.mak'}))
-            assert_that(_mailer.data[1].recipients[0], is_('abc2@example.com'))
+            assert_that(_mailer.data[1].recipients[0], is_(user2))
