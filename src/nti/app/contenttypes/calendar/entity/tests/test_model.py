@@ -7,19 +7,16 @@ from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods
 
-import datetime
-import unittest
-
 from hamcrest import assert_that
-from hamcrest import contains
 from hamcrest import has_entries
-from hamcrest import has_length
 from hamcrest import has_properties
 from hamcrest import is_
 from hamcrest import instance_of
 from hamcrest import not_none
 from hamcrest import same_instance
-from hamcrest import starts_with
+
+from datetime import datetime
+from datetime import timedelta
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
@@ -46,12 +43,12 @@ class TestExternalization(ApplicationLayerTest):
         return new_io
 
     def testUserCalendarEvent(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.utcnow()
         obj =  UserCalendarEvent(title=u'reading',
-                             description=u'this is',
-                             location=u'oklahoma',
-                             end_time=now,
-                             icon=u'/abc/efg')
+                                 description=u'this is',
+                                 location=u'oklahoma',
+                                 end_time=now + timedelta(days=1),
+                                 icon=u'/abc/efg')
         assert_that(obj.start_time, is_(obj.created))
 
         external = toExternalObject(obj)
@@ -76,12 +73,12 @@ class TestExternalization(ApplicationLayerTest):
                                             'lastModified': not_none()}))
 
     def testCommunityCalendarEvent(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.utcnow()
         obj =  CommunityCalendarEvent(title=u'reading',
-                             description=u'this is',
-                             location=u'oklahoma',
-                             end_time=now,
-                             icon=u'/abc/efg')
+                                      description=u'this is',
+                                      location=u'oklahoma',
+                                      end_time=now + timedelta(days=1),
+                                      icon=u'/abc/efg')
         assert_that(obj.start_time, is_(obj.created))
 
         external = toExternalObject(obj)
@@ -106,12 +103,12 @@ class TestExternalization(ApplicationLayerTest):
                                             'lastModified': not_none()}))
 
     def testFriendsListCalendarEvent(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.utcnow()
         obj =  FriendsListCalendarEvent(title=u'reading',
-                             description=u'this is',
-                             location=u'oklahoma',
-                             end_time=now,
-                             icon=u'/abc/efg')
+                                        description=u'this is',
+                                        location=u'oklahoma',
+                                        end_time=now + timedelta(days=1),
+                                        icon=u'/abc/efg')
         assert_that(obj.start_time, is_(obj.created))
 
         external = toExternalObject(obj)
