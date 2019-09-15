@@ -15,7 +15,6 @@ from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.appserver.workspaces import UserService
 
-from nti.dataserver.tests import mock_dataserver as mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 from nti.externalization.externalization import toExternalObject
@@ -31,14 +30,13 @@ class TestWorkspaces(ApplicationLayerTest):
     @WithMockDSTrans
     def test_workspaces(self):
         user = self._create_user('sjohnson@nextthought.com')
-        with mock_dataserver.mock_db_trans(self.ds):
-            service = UserService(user)
-            workspace = [workspace for workspace in service.workspaces if workspace.name=='sjohnson@nextthought.com'][0]
-            external = toExternalObject(workspace)
+        service = UserService(user)
+        workspace = [workspace for workspace in service.workspaces if workspace.name=='sjohnson@nextthought.com'][0]
+        external = toExternalObject(workspace)
 
-            result = self.require_collection_with_title(external, 'Calendars')
-            link = self.require_link_href_with_rel(result, 'events')
-            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@events'))
+        result = self.require_collection_with_title(external, 'Calendars')
+        link = self.require_link_href_with_rel(result, 'events')
+        assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@events'))
 
-            link = self.require_link_href_with_rel(result, 'export')
-            assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@export'))
+        link = self.require_link_href_with_rel(result, 'export')
+        assert_that(link, is_('/dataserver2/users/sjohnson@nextthought.com/Calendars/@@export'))
