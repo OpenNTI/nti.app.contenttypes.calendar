@@ -115,12 +115,15 @@ class CalendarCollection(Contained):
         Return a dict of course catalog entries the user is not enrolled
         in and that are available to be enrolled in.
         """
+        context_ntiids=self._context_ntiids()
+        excluded_context_ntiids=self._excluded_context_ntiids()
+
         result = LocatedExternalList()
         providers = component.subscribers((self.user,),
                                           ICalendarProvider)
         for x in providers or ():
-            result.extend(x.iter_calendars(context_ntiids=self._context_ntiids(),
-                                           excluded_context_ntiids=self._excluded_context_ntiids()))
+            result.extend(x.iter_calendars(context_ntiids=context_ntiids,
+                                           excluded_context_ntiids=excluded_context_ntiids))
         return result
 
     @Lazy

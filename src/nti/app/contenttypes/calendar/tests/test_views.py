@@ -16,6 +16,7 @@ from hamcrest import assert_that
 from hamcrest import has_properties
 from hamcrest import contains_string
 from hamcrest import less_than_or_equal_to
+from hamcrest import ends_with
 
 from datetime import datetime
 
@@ -351,8 +352,8 @@ class TestCalendarViews(CalendarLayerTest):
         assert_that(feed_url,
                     contains_string('/dataserver2/@@calendar_feed.ics?token='))
         res = self.testapp.get(generate_feed_url)
-        assert_that(res.json_body,
-                    is_(feed_url))
+        assert_that(res.json_body, ends_with(feed_url[-38:]))
+
         self.testapp.get(feed_url)
 
         # Now test size constraints (google calendar only works with a

@@ -68,7 +68,9 @@ class TestNotification(ApplicationLayerTest):
             def clear(self):
                 self.data[:] = []
 
-        with site(get_site_for_site_names(('platform.ou.edu',))):
+        targetSite = get_site_for_site_names(('platform.ou.edu',))
+        expectedPackage = 'nti.app.products.ou' if targetSite.__name__ != 'dataserver2' else None
+        with site(targetSite):
             _mailer = _MockMailer()
             assert_that(_mailer.data, has_length(0))
             mock_mailer.is_callable().returns(_mailer)
@@ -89,7 +91,7 @@ class TestNotification(ApplicationLayerTest):
                                                                      'recipients': has_length(1),
                                                                      'template_args': has_entries({'display_name': 'test001'}),
                                                                      'reply_to': None,
-                                                                     'package': 'nti.app.products.ou',
+                                                                     'package': expectedPackage,
                                                                      'request': not_none(),
                                                                      'text_template_extension': '.mak'}))
             assert_that(_mailer.data[0].recipients[0], is_(user1))
@@ -99,7 +101,7 @@ class TestNotification(ApplicationLayerTest):
                                                                      'recipients': has_length(1),
                                                                      'template_args': has_entries({'display_name': 'test002'}),
                                                                      'reply_to': None,
-                                                                     'package': 'nti.app.products.ou',
+                                                                     'package': expectedPackage,
                                                                      'request': not_none(),
                                                                      'text_template_extension': '.mak'}))
             assert_that(_mailer.data[1].recipients[0], is_(user2))
