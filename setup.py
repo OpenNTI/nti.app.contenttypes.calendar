@@ -14,6 +14,7 @@ TESTS_REQUIRE = [
     'nti.testing',
     'zope.dottedname',
     'zope.testrunner',
+    'nti.dataserver[test]',
 ]
 
 
@@ -55,6 +56,7 @@ setup(
         'nti.externalization',
         'nti.links',
         'nti.schema',
+        'nti.dataserver',
         'icalendar',
         'pyramid',
         'zope.i18nmessageid',
