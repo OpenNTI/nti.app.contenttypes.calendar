@@ -20,6 +20,7 @@
 
     <!-- Adapters -->
     <adapter factory=".adapters.calendar_event_to_calendar" />
+    <adapter factory=".adapters._CalendarEventDisplayNameGenerator" />
 
     <adapter factory=".adapters.CalendarEventURLProvider"
              for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
@@ -55,6 +56,8 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
 	<include package=".entity" file="configure.zcml" />
+
+	<include package=".notables" file="configure.zcml" />
 
 	<!-- Workspaces -->
 	<subscriber factory=".workspaces._calendar_collection_factory"
