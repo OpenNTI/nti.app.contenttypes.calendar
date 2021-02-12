@@ -117,7 +117,7 @@ class CalendarCollection(Contained):
 
     def iter_calendars(self):
         providers = component.subscribers((self.user,),
-                                          ICalendarProvider)
+                                          self.query_iface)
         for x in providers or ():
             for calendar in x.iter_calendars(context_ntiids=self._context_ntiids,
                                              excluded_context_ntiids=self._excluded_context_ntiids):
