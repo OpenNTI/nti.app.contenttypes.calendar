@@ -150,7 +150,7 @@ class CalendarCollection(Contained):
 
 
 @component.adapter(IUserWorkspace)
-@interface.implementer(ICalendarCollection)
+@interface.implementer(IAdminCalendarCollection)
 class AdminCalendarCollection(CalendarCollection):
 
     name = ADMIN_CALENDARS
