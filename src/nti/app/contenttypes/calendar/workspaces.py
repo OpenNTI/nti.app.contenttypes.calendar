@@ -24,18 +24,21 @@ from zope.i18n import translate
 from zope.security.interfaces import IPrincipal
 
 from nti.app.contenttypes.calendar import CALENDARS
+from nti.app.contenttypes.calendar import ADMIN_CALENDARS
 from nti.app.contenttypes.calendar import EVENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 from nti.app.contenttypes.calendar import MessageFactory as _
 from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
+from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
 
 from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.workspaces.interfaces import IUserWorkspace
 
 from nti.contenttypes.calendar.interfaces import ICalendarProvider
+from nti.contenttypes.calendar.interfaces import IAdminCalendarProvider
 
 from nti.dataserver.authorization import ROLE_ADMIN
 
@@ -58,6 +61,7 @@ class CalendarCollection(Contained):
 
     name = CALENDARS
     __name__ = CALENDARS
+    query_iface = ICalendarProvider
 
     accepts = ()
 
@@ -103,24 +107,26 @@ class CalendarCollection(Contained):
 
         return set([x for x in result if x]) if result else None
 
+    @Lazy
     def _context_ntiids(self):
         return self._ntiids('context_ntiids')
 
+    @Lazy
     def _excluded_context_ntiids(self):
         return self._ntiids('excluded_context_ntiids')
 
-    @Lazy
-    def calendars(self):
-        """
-        Return a dict of course catalog entries the user is not enrolled
-        in and that are available to be enrolled in.
-        """
-        result = LocatedExternalList()
+    def iter_calendars(self):
         providers = component.subscribers((self.user,),
                                           ICalendarProvider)
         for x in providers or ():
-            result.extend(x.iter_calendars(context_ntiids=self._context_ntiids(),
-                                           excluded_context_ntiids=self._excluded_context_ntiids()))
+            for calendar in x.iter_calendars(context_ntiids=self._context_ntiids,
+                                             excluded_context_ntiids=self._excluded_context_ntiids):
+                yield calendar
+
+    @Lazy
+    def calendars(self):
+        result = LocatedExternalList()
+        result.extend(self.iter_calendars())
         return result
 
     @Lazy
@@ -143,6 +149,17 @@ class CalendarCollection(Contained):
         return result
 
 
+@component.adapter(IUserWorkspace)
+@interface.implementer(ICalendarCollection)
+class AdminCalendarCollection(CalendarCollection):
+
+    name = ADMIN_CALENDARS
+    __name__ = ADMIN_CALENDARS
+    query_iface = IAdminCalendarProvider
+
+    links = ()
+
+
 def _calendar_collection_factory(user_workspace):
     return ICalendarCollection(user_workspace, None)
 
@@ -163,6 +180,31 @@ def _calendar_collection_adapter(workspace):
 def _empty_calendar_collection_adapter(unused_workspace):
     """
     Empty adapter to the :class:`ICalendarCollection` for sites that
+    may not want this functionality.
+    """
+    pass
+
+
+def _admin_calendar_collection_factory(user_workspace):
+    return IAdminCalendarCollection(user_workspace, None)
+
+
+@component.adapter(IUserWorkspace)
+@interface.implementer(IAdminCalendarCollection)
+def _admin_calendar_collection_adapter(workspace):
+    """
+    Adapter to the :class:`IAdminCalendarCollection`; this is the default
+    adapter.
+    """
+    result = AdminCalendarCollection(workspace)
+    return result
+
+
+@component.adapter(IUserWorkspace)
+@interface.implementer(IAdminCalendarCollection)
+def _empty_admin_calendar_collection_adapter(unused_workspace):
+    """
+    Empty adapter to the :class:`IAdminCalendarCollection` for sites that
     may not want this functionality.
     """
     pass

@@ -26,7 +26,13 @@ class ICalendarACLProvider(IACLProvider):
 
 class ICalendarCollection(IContainerCollection):
     """
-    A collection containing data for calendar events.
+    A collection containing calendars.
+    """
+
+
+class IAdminCalendarCollection(ICalendarCollection):
+    """
+    A collection containing calendars the user is an administrator of.
     """
 
 

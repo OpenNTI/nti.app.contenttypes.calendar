@@ -13,6 +13,8 @@ MessageFactory = zope.i18nmessageid.MessageFactory(__name__)
 
 CALENDARS = u'Calendars'
 
+ADMIN_CALENDARS = u'AdminCalendars'
+
 CONTENTS_VIEW_NAME = u'contents'
 
 EXPORT_VIEW_NAME = u'export'

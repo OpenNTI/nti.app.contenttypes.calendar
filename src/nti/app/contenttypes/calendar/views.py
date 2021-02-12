@@ -35,7 +35,8 @@ from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 
 from nti.app.contenttypes.calendar import MessageFactory as _
 
-from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
+from nti.app.contenttypes.calendar.interfaces import ICalendarCollection,\
+    IAdminCalendarCollection
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
 
@@ -323,12 +324,26 @@ class CalendarCollectionView(AbstractAuthenticatedView,
     _DEFAULT_BATCH_START = None
 
     def __call__(self):
-        result = to_external_object(self.context)
-        result[TOTAL] = len(result[ITEMS])
+        result = LocatedExternalDict()
+        result.__name__ = self.request.view_name
+        result.__parent__ = self.request.context
         self._batch_items_iterable(result,
-                                   result[ITEMS],
-                                   number_items_needed=result[TOTAL])
+                                   self.context.iter_calendars())
         return result
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=IAdminCalendarCollection,
+             permission=nauth.ACT_READ,
+             request_method='GET')
+class AdminCalendarCollectionView(CalendarCollectionView):
+    """
+    A generic :class:`IAdminCalendarCollection` view that supports paging on the
+    collection.
+    """
+    _DEFAULT_BATCH_SIZE = 20
+    _DEFAULT_BATCH_START = 0
 
 
 @view_config(route_name='objects.generic.traversal',

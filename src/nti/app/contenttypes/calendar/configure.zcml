@@ -31,12 +31,19 @@
              provides=".interfaces.ICalendarEventUIDProvider" />
 
     <adapter factory=".workspaces._calendar_collection_adapter" />
+    <adapter factory=".workspaces._admin_calendar_collection_adapter" />
 
 	<adapter name="Calendars"
 			 for="nti.dataserver.interfaces.IUser
 			      pyramid.interfaces.IRequest"
 			 factory=".traversal.calendar_collection_path_adapter"
 			 provides="zope.traversing.interfaces.IPathAdapter" />
+
+    <adapter name="AdminCalendars"
+             for="nti.dataserver.interfaces.IUser
+                  pyramid.interfaces.IRequest"
+             factory=".traversal.admin_calendar_collection_path_adapter"
+             provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEventDecorator"
@@ -63,5 +70,9 @@
 	<subscriber factory=".workspaces._calendar_collection_factory"
 				provides=".interfaces.ICalendarCollection"
 				for="nti.appserver.workspaces.interfaces.IUserWorkspace" />
+
+    <subscriber factory=".workspaces._admin_calendar_collection_factory"
+                provides=".interfaces.IAdminCalendarCollection"
+                for="nti.appserver.workspaces.interfaces.IUserWorkspace" />
 
 </configure>

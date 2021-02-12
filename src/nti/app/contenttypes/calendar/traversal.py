@@ -17,6 +17,7 @@ from zope.traversing.interfaces import IPathAdapter
 from nti.dataserver.interfaces import IUser
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
+from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
 
 from nti.appserver.workspaces.interfaces import IUserService
 
@@ -26,3 +27,10 @@ from nti.appserver.workspaces.interfaces import IUserService
 def calendar_collection_path_adapter(user, unused_request):
     service = IUserService(user)
     return ICalendarCollection(service.user_workspace, None)
+
+
+@component.adapter(IUser)
+@interface.implementer(IPathAdapter)
+def admin_calendar_collection_path_adapter(user, unused_request):
+    service = IUserService(user)
+    return IAdminCalendarCollection(service.user_workspace, None)
