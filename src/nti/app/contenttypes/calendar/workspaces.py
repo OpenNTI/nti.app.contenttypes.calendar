@@ -12,6 +12,8 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.threadlocal import get_current_request
 
+from requests.structures import CaseInsensitiveDict
+
 from zope import component
 from zope import interface
 
@@ -85,26 +87,27 @@ class CalendarCollection(Contained):
     def _request(self):
         return getattr(self, 'request', None) or get_current_request()
 
-    def _ntiids(self, name):
-        result = None
-        if self._request:
-            if name in self._request.params:
-                result = self._request.params.getall(name)
-            else:
-                try:
-                    body = self._request.json_body
-                    result = body.get(name)
-                except ValueError:
-                    pass
-                else:
-                    if result is not None and not isinstance(result, list):
-                        raise_json_error(self._request,
-                                         hexc.HTTPUnprocessableEntity,
-                                         {
-                                             'message': translate(_('${name} should be an array of ntiids or empty.', mapping={'name': name}))
-                                         },
-                                         None)
+    @Lazy
+    def _params(self):
+        if self._request is None:
+            return {}
+        try:
+            values = self._request.json_body
+        except ValueError:
+            values = self._request.params
+        result = CaseInsensitiveDict(values)
+        return result
 
+    def _ntiids(self, name):
+        result = self._params.get(name)
+        if result is not None and not isinstance(result, list):
+            raise_json_error(self._request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': translate(_('${name} should be an array of ntiids or empty.',
+                                                        mapping={'name': name}))
+                             },
+                             None)
         return set([x for x in result if x]) if result else None
 
     @Lazy
@@ -115,12 +118,17 @@ class CalendarCollection(Contained):
     def _excluded_context_ntiids(self):
         return self._ntiids('excluded_context_ntiids')
 
+    @Lazy
+    def include_filter(self):
+        return self._params.get('filter')
+
     def iter_calendars(self):
         providers = component.subscribers((self.user,),
                                           self.query_iface)
         for x in providers or ():
             for calendar in x.iter_calendars(context_ntiids=self._context_ntiids,
-                                             excluded_context_ntiids=self._excluded_context_ntiids):
+                                             excluded_context_ntiids=self._excluded_context_ntiids,
+                                             include_filter=self.include_filter):
                 yield calendar
 
     @Lazy
