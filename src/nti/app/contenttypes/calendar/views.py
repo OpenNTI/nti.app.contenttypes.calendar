@@ -327,8 +327,8 @@ class CalendarCollectionView(AbstractAuthenticatedView,
         result = LocatedExternalDict()
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
-        self._batch_items_iterable(result,
-                                   self.context.iter_calendars())
+        calendars = sorted(self.context.iter_calendars, key=lambda x: x.title.lower())
+        self._batch_items_iterable(result, calendars)
         return result
 
 
