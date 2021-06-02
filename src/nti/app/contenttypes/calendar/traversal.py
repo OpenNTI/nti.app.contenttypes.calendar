@@ -21,6 +21,9 @@ from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
 
 from nti.appserver.workspaces.interfaces import IUserService
 
+from nti.contenttypes.calendar.interfaces import ICalendarEvent
+from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
+
 
 @component.adapter(IUser)
 @interface.implementer(IPathAdapter)
@@ -34,3 +37,9 @@ def calendar_collection_path_adapter(user, unused_request):
 def admin_calendar_collection_path_adapter(user, unused_request):
     service = IUserService(user)
     return IAdminCalendarCollection(service.user_workspace, None)
+
+
+@component.adapter(ICalendarEvent)
+@interface.implementer(IPathAdapter)
+def event_to_calendar_attendance(event, _unused_request):
+    return ICalendarEventAttendanceContainer(event)
