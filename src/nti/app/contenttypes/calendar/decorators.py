@@ -134,20 +134,25 @@ class UserCalendarEventAttendanceDeleteLinkDecorator(AbstractAuthenticatedReques
 @interface.implementer(IExternalObjectDecorator)
 class CalendarEventAttendanceLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _has_permission(self, context):
+    def _has_create_permission(self, context):
+        return has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
+
+    def _has_list_permission(self, context):
         return has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
 
     def _predicate(self, context, result):
-        return AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result) \
-            and self._has_permission(context)
+        return AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 
     def _do_decorate_external(self, context, result):
         attendance_container = ICalendarEventAttendanceContainer(context)
         if attendance_container is not None:
             links = result.setdefault(LINKS, [])
-            links.append(
-                Link(attendance_container, rel='record-attendance', method='POST')
-            )
-            links.append(
-                Link(attendance_container, rel='list-attendance', method='GET')
-            )
+            if self._has_create_permission(attendance_container):
+                links.append(
+                    Link(attendance_container, rel='record-attendance', method='POST')
+                )
+
+            if self._has_list_permission(attendance_container):
+                links.append(
+                    Link(attendance_container, rel='list-attendance', method='GET')
+                )
