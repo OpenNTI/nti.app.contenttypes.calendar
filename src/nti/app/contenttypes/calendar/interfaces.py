@@ -45,3 +45,28 @@ class ICalendarEventUIDProvider(interface.Interface):
         """
         Return an uid for :class: `ICalendarEvent`.
         """
+
+
+class ICalendarEventAttendanceManager(interface.Interface):
+    """
+    Handles the logic for adding users as attendee for an event
+    """
+
+    def add_attendee(user, creator=None, registration_time=None):
+        """
+        Add the user provided as an attendee to the event.
+
+        :return: Newly added IUserCalendarEventAttendance record
+        """
+
+
+class DuplicateAttendeeError(Exception):
+    pass
+
+
+class InvalidAttendeeError(Exception):
+    """
+    Indication that an attempt was made to add an attendee to an event
+    they're not allowed to attend (e.g. a course event they're not enrolled
+    in).
+    """
