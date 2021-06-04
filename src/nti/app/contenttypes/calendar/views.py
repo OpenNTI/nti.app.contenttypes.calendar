@@ -51,6 +51,8 @@ from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IFriendlyNamed
 
+from nti.externalization.datetime import datetime_from_string
+
 logger = __import__('logging').getLogger(__name__)
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
@@ -381,16 +383,16 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
              context=ICalendarEventAttendanceContainer,
              permission=ACT_RECORD_EVENT_ATTENDANCE,
              request_method='POST')
-class RecordCalendarEventAttendanceView(AbstractAuthenticatedView):
+class RecordCalendarEventAttendanceView(AbstractAuthenticatedView,
+                                        ModeledContentUploadRequestUtilsMixin):
     """
     Post attendance for a given user to an event
     """
 
-    def _get_user(self):
-        params = CaseInsensitiveDict(self.request.params)
-        username = params.get('user') \
-                   or params.get('username') \
-                   or params.get('instructor')
+    def _get_user(self, values):
+        username = values.get('Username') \
+                   or values.get('user') \
+                   or values.get('username')
         result = User.get_user(username)
 
         if result is None:
@@ -404,12 +406,24 @@ class RecordCalendarEventAttendanceView(AbstractAuthenticatedView):
 
         return result
 
+    def _get_registration_time(self, values):
+        registration_time = values.get('registrationTime')
+
+        if registration_time is not None:
+            registration_time = datetime_from_string(registration_time)
+
+        return registration_time
+
     def __call__(self):
-        user = self._get_user()
+        values = self.readInput()
+        user = self._get_user(values)
+        registration_time = self._get_registration_time(values)
 
         try:
             event_manager = ICalendarEventAttendanceManager(self.context)
-            attendance = event_manager.add_attendee(user)
+            attendance = event_manager.add_attendee(user,
+                                                    creator=self.remoteUser.username,
+                                                    registration_time=registration_time)
         except DuplicateAttendeeError as e:
             raise_json_error(self.request,
                              hexc.HTTPConflict,
