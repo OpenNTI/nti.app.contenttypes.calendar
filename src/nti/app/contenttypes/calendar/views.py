@@ -44,8 +44,12 @@ from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
 from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
 from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
+from nti.appserver.usersearch_views import UserSearchView
+
 from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
 from nti.contenttypes.calendar.interfaces import IUserCalendarEventAttendance
+
+from nti.coremetadata.interfaces import IUser
 
 from nti.dataserver.users import User
 
@@ -645,3 +649,25 @@ class CalendarEventAttendanceView(AbstractAuthenticatedView,
         result_dict[ITEMS] = self._get_items(result_dict)
 
         return result_dict
+
+
+@view_config(route_name='objects.generic.traversal',
+             request_method='GET',
+             renderer='rest',
+             context=ICalendarEvent,
+             permission=ACT_RECORD_EVENT_ATTENDANCE,
+             name='UserSearch')
+class SearchPossibleAttendees(UserSearchView):
+    """
+    A user search within the context of a calendar event.  Currently
+    simply limits us to only users, but could be extended to ensure only
+    certain subsets of users were returned, e.g. users that were enrolled
+    in an associated course.
+    """
+
+    def filter_result(self, all_results):
+        results = []
+        for result in all_results:
+            if IUser.providedBy(result):
+                results.append(result)
+        return super(SearchPossibleAttendees, self).filter_result(results)

@@ -70,3 +70,12 @@ class InvalidAttendeeError(Exception):
     they're not allowed to attend (e.g. a course event they're not enrolled
     in).
     """
+
+
+class ICalendarEventAttendanceLinkSource(interface.Interface):
+
+    def links():
+        """
+        :return: Iterable of links for attendance-related views like
+        recording, removing, and listing attendance records.
+        """

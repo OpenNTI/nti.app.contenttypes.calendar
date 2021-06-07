@@ -59,6 +59,11 @@
              for="nti.contenttypes.calendar.interfaces.ICalendarEventAttendanceContainer"
              provides=".interfaces.ICalendarEventAttendanceManager" />
 
+    <adapter factory=".attendance.DefaultCalendarEventAttendanceLinkSource"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                  pyramid.interfaces.IRequest"
+             provides=".interfaces.ICalendarEventAttendanceLinkSource" />
+
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEventDecorator"
                 for="nti.contenttypes.calendar.interfaces.ICalendarEvent"

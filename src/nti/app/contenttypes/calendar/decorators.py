@@ -6,12 +6,13 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
-from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
 from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
+
+from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
 
 from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
 
@@ -134,25 +135,10 @@ class UserCalendarEventAttendanceDeleteLinkDecorator(AbstractAuthenticatedReques
 @interface.implementer(IExternalObjectDecorator)
 class CalendarEventAttendanceLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _has_create_permission(self, context):
-        return has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
-
-    def _has_list_permission(self, context):
-        return has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
-
-    def _predicate(self, context, result):
-        return AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
-
     def _do_decorate_external(self, context, result):
-        attendance_container = ICalendarEventAttendanceContainer(context)
-        if attendance_container is not None:
+        link_source = component.queryMultiAdapter((context, self.request),
+                                                  ICalendarEventAttendanceLinkSource)
+        if link_source is not None:
             links = result.setdefault(LINKS, [])
-            if self._has_create_permission(attendance_container):
-                links.append(
-                    Link(attendance_container, rel='record-attendance', method='POST')
-                )
-
-            if self._has_list_permission(attendance_container):
-                links.append(
-                    Link(attendance_container, rel='list-attendance', method='GET')
-                )
+            for link in link_source.links():
+                links.append(link)
