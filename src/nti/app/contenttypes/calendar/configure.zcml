@@ -45,6 +45,25 @@
              factory=".traversal.admin_calendar_collection_path_adapter"
              provides="zope.traversing.interfaces.IPathAdapter" />
 
+    <adapter factory="nti.traversal.traversal.DefaultAdapterTraversable"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                  pyramid.interfaces.IRequest"
+             provides="zope.traversing.interfaces.ITraversable" />
+
+    <adapter factory=".traversal.event_to_calendar_attendance"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent pyramid.interfaces.IRequest"
+             provides="zope.traversing.interfaces.IPathAdapter"
+             name="EventAttendance" />
+
+    <adapter factory=".attendance.DefaultEventAttendanceManager"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEventAttendanceContainer"
+             provides=".interfaces.ICalendarEventAttendanceManager" />
+
+    <adapter factory=".attendance.DefaultCalendarEventAttendanceLinkSource"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                  pyramid.interfaces.IRequest"
+             provides=".interfaces.ICalendarEventAttendanceLinkSource" />
+
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEventDecorator"
                 for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
@@ -61,6 +80,26 @@
 	<subscriber factory=".decorators._CalendarEventEditLinkDecorator"
 				for="nti.contenttypes.calendar.interfaces.ICalendarEvent pyramid.interfaces.IRequest"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators.UserCalendarEventAttendanceDecorator"
+                for="nti.contenttypes.calendar.interfaces.IUserCalendarEventAttendance
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators.UserCalendarEventAttendanceEditLinkDecorator"
+                for="nti.contenttypes.calendar.interfaces.IUserCalendarEventAttendance
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators.UserCalendarEventAttendanceDeleteLinkDecorator"
+                for="nti.contenttypes.calendar.interfaces.IUserCalendarEventAttendance
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators.CalendarEventAttendanceLinkDecorator"
+                for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
 	<include package=".entity" file="configure.zcml" />
 
