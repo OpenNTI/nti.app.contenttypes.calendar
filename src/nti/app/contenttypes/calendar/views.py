@@ -552,6 +552,9 @@ class CalendarEventAttendanceView(AbstractAuthenticatedView,
             The sort direction. Options are ``ascending`` and
             ``descending``. Sort order is ascending by default.
 
+    search
+            String to use for searching users of the attendance records,
+            matching realname, username, or alias.
     """
 
     _DEFAULT_BATCH_SIZE = 50
