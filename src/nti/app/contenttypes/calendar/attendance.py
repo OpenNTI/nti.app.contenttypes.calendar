@@ -25,6 +25,7 @@ from nti.appserver.pyramid_authorization import has_permission as app_has_permis
 
 from nti.contenttypes.calendar.attendance import UserCalendarEventAttendance
 
+from nti.contenttypes.calendar.interfaces import ICalendarDynamicEvent
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
 from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
 
@@ -79,6 +80,10 @@ class DefaultCalendarEventAttendanceLinkSource(object):
 
     def links(self):
         result = []
+
+        if ICalendarDynamicEvent.providedBy(self.event):
+            return result
+
         attendance_container = ICalendarEventAttendanceContainer(self.event)
         if attendance_container is not None:
             if self._has_create_permission(attendance_container):
