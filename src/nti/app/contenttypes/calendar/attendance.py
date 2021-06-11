@@ -20,6 +20,7 @@ from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceMan
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
 
 from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
 from nti.appserver.pyramid_authorization import has_permission as app_has_permission
 
@@ -72,11 +73,11 @@ class DefaultCalendarEventAttendanceLinkSource(object):
         return app_has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
 
     def _has_list_permission(self, context):
-        return app_has_permission(ACT_RECORD_EVENT_ATTENDANCE, context, self.request)
+        return app_has_permission(ACT_VIEW_EVENT_ATTENDANCE, context, self.request)
 
-    def search_link(self):
-        return Link(self.event, elements=('UserSearch',),
-                    rel='search-possible-attendees')
+    def search_links(self):
+        return (Link(self.event, elements=('UserSearch',),
+                    rel='search-possible-attendees'),)
 
     def links(self):
         result = []
@@ -90,9 +91,9 @@ class DefaultCalendarEventAttendanceLinkSource(object):
                 result.append(
                     Link(attendance_container, rel='record-attendance', method='POST')
                 )
-                result.append(
-                    self.search_link()
-                )
+
+                for search_link in self.search_links() or ():
+                    result.append(search_link)
 
             if self._has_list_permission(attendance_container):
                 result.append(
