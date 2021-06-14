@@ -638,9 +638,11 @@ class CalendarEventAttendanceView(AbstractAuthenticatedView,
         def to_external(summary):
             return summary.attendance
 
+        total_items = result_dict[TOTAL] = len(result_set)
         self._batch_items_iterable(result_dict,
                                    result_set,
-                                   selector=to_external)
+                                   selector=to_external,
+                                   number_items_needed=total_items)
 
         return result_dict.get(ITEMS)
 
