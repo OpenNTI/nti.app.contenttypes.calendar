@@ -96,10 +96,11 @@ class _CalendarEventDecorator(Singleton):
 class UserCalendarEventAttendanceDecorator(Singleton):
 
     def decorateExternalObject(self, context, result):
-        user = User.get_user(context.Username)
-        if user is not None:
-            result.pop('Username')
-            result['User'] = to_external_object(user)
+        if 'User' not in result:
+            user = User.get_user(context.Username)
+            if user is not None:
+                result.pop('Username')
+                result['User'] = to_external_object(user)
 
 
 @component.adapter(IUserCalendarEventAttendance)
