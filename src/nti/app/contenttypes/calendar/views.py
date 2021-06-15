@@ -382,33 +382,7 @@ class GenerateCalendarFeedURL(AbstractAuthenticatedView):
         return generate_ics_feed_url(self.context.user, self.request)
 
 
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             context=ICalendarEventAttendanceContainer,
-             permission=ACT_RECORD_EVENT_ATTENDANCE,
-             request_method='POST')
-class RecordCalendarEventAttendanceView(AbstractAuthenticatedView,
-                                        ModeledContentUploadRequestUtilsMixin):
-    """
-    Post attendance for a given user to an event
-    """
-
-    def _get_user(self, values):
-        username = values.get('Username') \
-                   or values.get('user') \
-                   or values.get('username')
-        result = User.get_user(username)
-
-        if result is None:
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                 'message': _(u"User not found."),
-                                 'code': 'UserNotFound',
-                             },
-                             None)
-
-        return result
+class RecordCalendarEventAttendanceMixin(object):
 
     def _get_registration_time(self, values):
         registration_time = values.get('registrationTime')
@@ -418,11 +392,7 @@ class RecordCalendarEventAttendanceView(AbstractAuthenticatedView,
 
         return registration_time
 
-    def __call__(self):
-        values = self.readInput()
-        user = self._get_user(values)
-        registration_time = self._get_registration_time(values)
-
+    def _record_attendance(self, user, registration_time):
         try:
             event_manager = ICalendarEventAttendanceManager(self.context)
             attendance = event_manager.add_attendee(user,
@@ -452,6 +422,45 @@ class RecordCalendarEventAttendanceView(AbstractAuthenticatedView,
                     self.getRemoteUser(),
                     event_ntiid,
                     user.username)
+
+        return attendance
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             context=ICalendarEventAttendanceContainer,
+             permission=ACT_RECORD_EVENT_ATTENDANCE,
+             request_method='POST')
+class RecordCalendarEventAttendanceView(AbstractAuthenticatedView,
+                                        ModeledContentUploadRequestUtilsMixin,
+                                        RecordCalendarEventAttendanceMixin):
+    """
+    Post attendance for a given user to an event
+    """
+
+    def _get_user(self, values):
+        username = values.get('Username') \
+                   or values.get('user') \
+                   or values.get('username')
+        result = User.get_user(username)
+
+        if result is None:
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _(u"User not found."),
+                                 'code': 'UserNotFound',
+                             },
+                             None)
+
+        return result
+
+    def __call__(self):
+        values = self.readInput()
+        user = self._get_user(values)
+        registration_time = self._get_registration_time(values)
+
+        attendance = self._record_attendance(user, registration_time)
 
         self.request.response.status_int = 201
         return attendance
