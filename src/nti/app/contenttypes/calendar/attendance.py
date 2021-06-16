@@ -14,6 +14,8 @@ from zope import interface
 
 from nti.app.authentication import get_remote_user
 
+from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
+
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
@@ -98,6 +100,13 @@ class DefaultCalendarEventAttendanceLinkSource(object):
             if self._has_list_permission(attendance_container):
                 result.append(
                     Link(attendance_container, rel='list-attendance', method='GET')
+                )
+
+                result.append(
+                    Link(attendance_container,
+                         rel='export-attendance',
+                         elements=('@@%s' % EXPORT_ATTENDANCE_VIEW,),
+                         method='GET')
                 )
 
         return result

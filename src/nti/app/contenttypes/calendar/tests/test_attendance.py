@@ -78,6 +78,7 @@ class TestCalendarEventAttendanceLinkSource(TestCase):
             has_property('rel', 'record-attendance'),
             has_property('rel', 'search-possible-attendees'),
             has_property('rel', 'list-attendance'),
+            has_property('rel', 'export-attendance'),
         ))
 
     @fudge.patch('nti.app.contenttypes.calendar.attendance.app_has_permission')
@@ -87,6 +88,7 @@ class TestCalendarEventAttendanceLinkSource(TestCase):
 
         assert_that(link_source.links(), contains_inanyorder(
             has_property('rel', 'list-attendance'),
+            has_property('rel', 'export-attendance'),
         ))
 
     @fudge.patch('nti.app.contenttypes.calendar.attendance.app_has_permission')

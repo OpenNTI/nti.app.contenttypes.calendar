@@ -16,6 +16,8 @@ from nti.appserver.workspaces.interfaces import IContainerCollection
 
 from nti.dataserver.interfaces import IACLProvider
 
+from nti.schema.field import ListOrTuple
+
 
 class ICalendarACLProvider(IACLProvider):
     """
@@ -78,4 +80,24 @@ class ICalendarEventAttendanceLinkSource(interface.Interface):
         """
         :return: Iterable of links for attendance-related views like
         recording, removing, and listing attendance records.
+        """
+
+
+class IAttendanceRecordExportFieldProvider(interface.Interface):
+    """
+    Provides an ordered set of additional fields and their mapped values
+    to use for a CSV export of the attendance records for an event.
+    """
+
+    field_names = ListOrTuple(title=u'Field Names',
+                              description=u'Ordered list of additional fields',
+                              required=True,
+                              readonly=True)
+
+    def mapped_values(attendance_record):
+        """
+        Maps the values to the fields provided in field names given an
+        IUserCalendarEventAttendance record.
+
+        :return: Map of field names to their value for the provided record.
         """

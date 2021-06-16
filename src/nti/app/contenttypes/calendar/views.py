@@ -8,9 +8,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import nameparser
+from io import BytesIO
 
 from datetime import datetime
+
+import nameparser
+
+import unicodecsv as csv
 
 from zope import component
 
@@ -30,34 +34,17 @@ from nti.app.contentfile import validate_sources
 
 from nti.app.contentfolder.resources import is_internal_file_link
 
-from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
-
+from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
+from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 from nti.app.contenttypes.calendar import MessageFactory as _
 
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
+from nti.app.contenttypes.calendar.interfaces import IAttendanceRecordExportFieldProvider
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
-
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
-from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
-
-from nti.appserver.usersearch_views import UserSearchView
-
-from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
-from nti.contenttypes.calendar.interfaces import IUserCalendarEventAttendance
-
-from nti.coremetadata.interfaces import IUser
-
-from nti.dataserver.users import User
-
-from nti.dataserver.users.interfaces import IFriendlyNamed
-
-from nti.externalization.datetime import datetime_from_string
-
-logger = __import__('logging').getLogger(__name__)
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
 
@@ -66,18 +53,41 @@ from nti.app.externalization.error import raise_json_error
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
+
 from nti.appserver.ugd_edit_views import UGDPutView
+
+from nti.appserver.usersearch_views import UserSearchView
 
 from nti.common.string import is_true
 
 from nti.contenttypes.calendar.interfaces import ICalendar
-from nti.contenttypes.calendar.interfaces import ICalendarEvent
 from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
+from nti.contenttypes.calendar.interfaces import ICalendarEvent
+from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
+from nti.contenttypes.calendar.interfaces import IUserCalendarEventAttendance
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.coremetadata.interfaces import IUser
 
 from nti.dataserver import authorization as nauth
 
+
+from nti.dataserver.users import User
+
+from nti.dataserver.users.interfaces import IFriendlyNamed
+from nti.dataserver.users.interfaces import IUserProfile
+
+from nti.externalization.datetime import datetime_from_string
+
+from nti.externalization.externalization.standard_fields import datetime_to_string
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+logger = __import__('logging').getLogger(__name__)
 
 CLASS = StandardExternalFields.CLASS
 ITEMS = StandardExternalFields.ITEMS
@@ -685,3 +695,78 @@ class SearchPossibleAttendees(UserSearchView):
             if IUser.providedBy(result):
                 results.append(result)
         return super(SearchPossibleAttendees, self).filter_result(results)
+
+
+@view_config(route_name='objects.generic.traversal',
+             request_method='GET',
+             renderer='rest',
+             context=ICalendarEventAttendanceContainer,
+             permission=ACT_VIEW_EVENT_ATTENDANCE,
+             name=EXPORT_ATTENDANCE_VIEW)
+class ExportAttendanceCSVView(AbstractAuthenticatedView):
+    """
+    Export attendance for the event as a CSV.
+    """
+
+    @Lazy
+    def course(self):
+        return ICourseInstance(self.context)
+
+    @staticmethod
+    def _user_profile(username):
+        user = User.get_user(username)
+        return IUserProfile(user)
+
+    @staticmethod
+    def _registration_time_str(attendance_record):
+        registration_time = attendance_record.registrationTime
+        return datetime_to_string(registration_time)
+
+    def _attendance_record_dict(self, attendance_record):
+        profile = self._user_profile(attendance_record.Username)
+        return {
+            'username': attendance_record.Username,
+            'realname': profile.realname,
+            'registration_time': self._registration_time_str(attendance_record)
+        }
+
+    @Lazy
+    def _field_provider(self):
+        return component.queryMultiAdapter((ICalendarEvent(self.context),
+                                            self.request),
+                                           IAttendanceRecordExportFieldProvider)
+
+    def _attendance_records(self):
+        records = []
+        for attendance_record in self.context.values():
+            if User.get_user(attendance_record.Username) is None:
+                continue
+
+            row = self._attendance_record_dict(attendance_record)
+
+            if self._field_provider:
+                row.update(self._field_provider.mapped_values(attendance_record))
+
+            records.append(row)
+
+        return records
+
+    def __call__(self):
+        stream = BytesIO()
+        fieldnames = ['username', 'realname', 'registration_time']
+        if self._field_provider:
+            fieldnames.extend(self._field_provider.field_names)
+
+        csv_writer = csv.DictWriter(stream, fieldnames=fieldnames,
+                                    extrasaction='ignore',
+                                    encoding='utf-8')
+        csv_writer.writeheader()
+        for attendance_record in self._attendance_records():
+            csv_writer.writerow(attendance_record)
+
+        response = self.request.response
+        response.body = stream.getvalue()
+        response.content_encoding = 'identity'
+        response.content_type = 'text/csv; charset=UTF-8'
+        response.content_disposition = 'attachment; filename="event_attendance.csv"'
+        return response
