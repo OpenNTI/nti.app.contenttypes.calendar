@@ -41,7 +41,6 @@ from nti.app.contenttypes.calendar import MessageFactory as _
 
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
-from nti.app.contenttypes.calendar.interfaces import IAttendanceRecordExportFieldProvider
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
@@ -78,6 +77,7 @@ from nti.dataserver import authorization as nauth
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IFriendlyNamed
+from nti.dataserver.users.interfaces import IProfileDisplayableSupplementalFields
 from nti.dataserver.users.interfaces import IUserProfile
 
 from nti.externalization.datetime import datetime_from_string
@@ -725,27 +725,42 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
     def _attendance_record_dict(self, attendance_record):
         profile = self._user_profile(attendance_record.Username)
         return {
-            'username': attendance_record.Username,
-            'realname': profile.realname,
-            'registration_time': self._registration_time_str(attendance_record)
+            'Username': attendance_record.Username,
+            'Real Name': profile.realname,
+            'Registration Time': self._registration_time_str(attendance_record)
         }
 
     @Lazy
-    def _field_provider(self):
-        return component.queryMultiAdapter((ICalendarEvent(self.context),
-                                            self.request),
-                                           IAttendanceRecordExportFieldProvider)
+    def _supplemental_field_provider(self):
+        return component.queryUtility(IProfileDisplayableSupplementalFields)
+
+    @Lazy
+    def _supplemental_field_display_names(self):
+        return self._supplemental_field_provider.get_field_display_values()
+
+    def _supplemental_field_data(self, user):
+        display_names = self._supplemental_field_display_names
+        fields_to_values = self._supplemental_field_provider.get_user_fields(user)
+        return {
+            display_names[key]: value for key, value in fields_to_values.items()
+        }
+
+    def _supplemental_field_headers(self):
+        display_names = self._supplemental_field_display_names
+        ordered_fields = self._supplemental_field_provider.get_ordered_fields()
+        return [display_names[field] for field in ordered_fields]
 
     def _attendance_records(self):
         records = []
         for attendance_record in self.context.values():
-            if User.get_user(attendance_record.Username) is None:
+            user = User.get_user(attendance_record.Username)
+            if user is None:
                 continue
 
             row = self._attendance_record_dict(attendance_record)
 
-            if self._field_provider:
-                row.update(self._field_provider.mapped_values(attendance_record))
+            if self._supplemental_field_provider:
+                row.update(self._supplemental_field_data(user))
 
             records.append(row)
 
@@ -753,9 +768,9 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
 
     def __call__(self):
         stream = BytesIO()
-        fieldnames = ['username', 'realname', 'registration_time']
-        if self._field_provider:
-            fieldnames.extend(self._field_provider.field_names)
+        fieldnames = ['Username', 'Real Name', 'Registration Time']
+        if self._supplemental_field_provider:
+            fieldnames.extend(self._supplemental_field_headers())
 
         csv_writer = csv.DictWriter(stream, fieldnames=fieldnames,
                                     extrasaction='ignore',

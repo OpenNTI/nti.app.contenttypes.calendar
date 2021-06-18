@@ -20,13 +20,8 @@ from hamcrest import less_than_or_equal_to
 
 from datetime import datetime
 
-from nti.dataserver.users import User
-from pyramid.interfaces import IRequest
-
 from zope import component
 from zope import interface
-
-from nti.app.contenttypes.calendar.interfaces import IAttendanceRecordExportFieldProvider
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
@@ -34,8 +29,6 @@ from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
 from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
-
-from nti.contenttypes.calendar.interfaces import ICalendarEvent
 
 from nti.contenttypes.calendar.model import Calendar
 from nti.contenttypes.calendar.model import CalendarEvent
@@ -53,9 +46,14 @@ from nti.dataserver.authorization_acl import ace_denying_all
 
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
+from nti.dataserver.users import User
+
+from nti.dataserver.users.interfaces import IProfileDisplayableSupplementalFields
+
 from nti.externalization.externalization.standard_fields import datetime_to_string
 
 from nti.ntiids.oids import to_external_ntiid_oid
+
 
 class MockCalendar(Calendar):
 
@@ -444,7 +442,7 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
         export_attendance_url = '%s/@@ExportAttendance' % record_attendance_url
         res = self.testapp.get(export_attendance_url)
         assert_that(res.body,
-                    is_('username,realname,registration_time\r\n'))
+                    is_('Username,Real Name,Registration Time\r\n'))
 
         registration_time_1 = self._registration_time()
         record_attendance(admin_env, 'test_student1', registration_time_1)
@@ -454,7 +452,7 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
         res = self.testapp.get(export_attendance_url)
         assert_that(res.body,
-                    is_('username,realname,registration_time\r\n'
+                    is_('Username,Real Name,Registration Time\r\n'
                         + ('test_student1,Uno Student,%s\r\n' % registration_time_1)
                         + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
 
@@ -463,38 +461,35 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
         res = self.testapp.get(export_attendance_url)
         assert_that(res.body,
-                    is_('username,realname,registration_time\r\n'
+                    is_('Username,Real Name,Registration Time\r\n'
                         + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
 
-        @component.adapter(ICalendarEvent, IRequest)
-        @interface.implementer(IAttendanceRecordExportFieldProvider)
-        class FakeFieldProvider(object):
+        @interface.implementer(IProfileDisplayableSupplementalFields)
+        class _TestSupplementalFields(object):
 
-            field_names = ('field_1', 'field_2')
+            def get_user_fields(self, _user):
+                return {'field_1': 'value_1'}
 
-            def __init__(self, _event, _request):
-                pass
+            def get_field_display_values(self):
+                return {'field_1': "Field One", 'field_2': "Field Two"}
 
-            @staticmethod
-            def mapped_values(_record):
-                return {
-                    'field_1': 'value_1'
-                }
+            def get_ordered_fields(self):
+                return ['field_1', 'field_2']
 
-        with adapter(FakeFieldProvider, (ICalendarEvent, IRequest),
-                     IAttendanceRecordExportFieldProvider):
+        with _provide_utility(_TestSupplementalFields(),
+                              IProfileDisplayableSupplementalFields):
 
             res = self.testapp.get(export_attendance_url)
             assert_that(res.body,
-                        is_('username,realname,registration_time,field_1,field_2\r\n'
+                        is_('Username,Real Name,Registration Time,Field One,Field Two\r\n'
                             + ('test_student2,Dos Student,%s,value_1,\r\n' % registration_time_2)))
 
 
 @contextmanager
-def adapter(factory, required, provided):
+def _provide_utility(util, provided):
     gsm = component.getGlobalSiteManager()
-    gsm.registerAdapter(factory, required, provided)
+    gsm.registerUtility(util, provided)
     try:
         yield
     finally:
-        gsm.unregisterAdapter(factory)
+        gsm.unregisterUtility(util, provided)
