@@ -22,3 +22,5 @@ EXPORT_VIEW_NAME = u'export'
 EVENTS_VIEW_NAME = u'events'
 
 GENERATE_FEED_URL = u'GenerateFeedURL'
+
+EXPORT_ATTENDANCE_VIEW = u'ExportAttendance'

@@ -6,6 +6,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
+from contextlib import contextmanager
 
 from hamcrest import is_
 from hamcrest import contains
@@ -19,9 +20,13 @@ from hamcrest import less_than_or_equal_to
 
 from datetime import datetime
 
+from zope import component
 from zope import interface
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
+
+from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
@@ -32,6 +37,7 @@ from nti.coremetadata.interfaces import IContained
 
 from nti.dataserver.tests import mock_dataserver
 
+from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization import ROLE_ADMIN
 
 from nti.dataserver.authorization_acl import ace_allowing
@@ -40,7 +46,14 @@ from nti.dataserver.authorization_acl import ace_denying_all
 
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
+from nti.dataserver.users import User
+
+from nti.dataserver.users.interfaces import IProfileDisplayableSupplementalFields
+
+from nti.externalization.externalization.standard_fields import datetime_to_string
+
 from nti.ntiids.oids import to_external_ntiid_oid
+
 
 class MockCalendar(Calendar):
 
@@ -360,3 +373,123 @@ class TestCalendarViews(CalendarLayerTest):
         assert_that(len(feed_url), less_than_or_equal_to(256))
         longer_url = feed_url.replace('localhost', 'epiccharterschools.nextthought.com')
         assert_that(len(longer_url), less_than_or_equal_to(256))
+
+
+class TestCalendarAttendanceViews(CalendarLayerTest):
+
+    @staticmethod
+    def _registration_time():
+        registration_time = (datetime.utcnow().replace(microsecond=0))
+        return datetime_to_string(registration_time)
+
+    def _event_acl(self, principals_with_read):
+        aces = [ace_allowing(ROLE_ADMIN, ACT_RECORD_EVENT_ATTENDANCE, type(self)),
+                ace_allowing(ROLE_ADMIN, ACT_VIEW_EVENT_ATTENDANCE, type(self)),
+                ace_allowing(ROLE_ADMIN, ACT_READ, type(self))]
+        for prin in principals_with_read or ():
+            aces.append(ace_allowing(prin, ACT_READ, type(self)))
+        aces.append(ace_denying_all())
+        acl = acl_from_aces(aces)
+        return acl
+
+    @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
+    def test_attendence_csv_export(self):
+        username = u'testuser001@nextthought.com'
+        with mock_dataserver.mock_db_trans(self.ds):
+            calendar = MockCalendar(title=u"study",
+                                    principals_with_read=('test_student1',
+                                                          'test_student2'))
+            calendar.containerId = u'container_id'
+            calendar.id = u'container_id'
+            interface.alsoProvides(calendar, IContained)
+
+            user = self._create_user(username)
+            user.addContainedObject(calendar)
+
+            event = CalendarEvent(title="Test Event")
+            event.__acl__ = self._event_acl(('test_student1', 'test_student2'))
+            calendar.store_event(event)
+            event_ntiid = to_external_ntiid_oid(event)
+
+        assert_that(event_ntiid, not_none())
+
+        event_url = '/dataserver2/Objects/%s' % event_ntiid
+        res = self.testapp.get(event_url).json_body
+        self.require_link_href_with_rel(res, 'export-attendance')
+
+        record_attendance_url = '%s/EventAttendance' % event_url
+
+        def record_attendance(env, username_, registration_time=None, **kwargs):
+            kwargs['extra_environ'] = env
+            data = {
+                'Username': username_,
+                'registrationTime': registration_time,
+            }
+            return self.testapp.post_json(record_attendance_url, data, **kwargs)
+
+        admin_env = self._make_extra_environ()
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            self._create_user('test_student1',
+                              external_value={
+                                  'realname': u'Uno Student',
+                              })
+            self._create_user('test_student2',
+                              external_value={
+                                  'realname': u'Dos Student',
+                              })
+
+        export_attendance_url = '%s/@@ExportAttendance' % record_attendance_url
+        res = self.testapp.get(export_attendance_url)
+        assert_that(res.body,
+                    is_('Username,Real Name,Registration Time\r\n'))
+
+        registration_time_1 = self._registration_time()
+        record_attendance(admin_env, 'test_student1', registration_time_1)
+
+        registration_time_2 = self._registration_time()
+        record_attendance(admin_env, 'test_student2', registration_time_2)
+
+        res = self.testapp.get(export_attendance_url)
+        assert_that(res.body,
+                    is_('Username,Real Name,Registration Time\r\n'
+                        + ('test_student1,Uno Student,%s\r\n' % registration_time_1)
+                        + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
+
+        with mock_dataserver.mock_db_trans(self.ds):
+            User.delete_user('test_student1')
+
+        res = self.testapp.get(export_attendance_url)
+        assert_that(res.body,
+                    is_('Username,Real Name,Registration Time\r\n'
+                        + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
+
+        @interface.implementer(IProfileDisplayableSupplementalFields)
+        class _TestSupplementalFields(object):
+
+            def get_user_fields(self, _user):
+                return {'field_1': 'value_1'}
+
+            def get_field_display_values(self):
+                return {'field_1': "Field One", 'field_2': "Field Two"}
+
+            def get_ordered_fields(self):
+                return ['field_1', 'field_2']
+
+        with _provide_utility(_TestSupplementalFields(),
+                              IProfileDisplayableSupplementalFields):
+
+            res = self.testapp.get(export_attendance_url)
+            assert_that(res.body,
+                        is_('Username,Real Name,Registration Time,Field One,Field Two\r\n'
+                            + ('test_student2,Dos Student,%s,value_1,\r\n' % registration_time_2)))
+
+
+@contextmanager
+def _provide_utility(util, provided):
+    gsm = component.getGlobalSiteManager()
+    gsm.registerUtility(util, provided)
+    try:
+        yield
+    finally:
+        gsm.unregisterUtility(util, provided)
