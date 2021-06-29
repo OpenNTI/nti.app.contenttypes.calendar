@@ -396,9 +396,7 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
     def test_attendence_csv_export(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):
-            calendar = MockCalendar(title=u"study",
-                                    principals_with_read=('test_student1',
-                                                          'test_student2'))
+            calendar = MockCalendar(title=u"study")
             calendar.containerId = u'container_id'
             calendar.id = u'container_id'
             interface.alsoProvides(calendar, IContained)
@@ -483,6 +481,51 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
             assert_that(res.body,
                         is_('Username,Real Name,Registration Time,Field One,Field Two\r\n'
                             + ('test_student2,Dos Student,%s,value_1,\r\n' % registration_time_2)))
+
+    @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
+    def test_search(self):
+        username = u'testuser001@nextthought.com'
+        with mock_dataserver.mock_db_trans(self.ds):
+            user = self._create_user(username,
+                                     external_value={
+                                         'realname': u'Ben Owner'
+                                     })
+            self._create_user('unsearchable',
+                              external_value={
+                                  'realname': u'Xao Ma',
+                              })
+
+            calendar = self._create_calendar(user)
+
+            event = self._create_event(user, calendar)
+            event_ntiid = event.ntiid
+            assert_that(event_ntiid, not_none())
+
+        event_url = '/dataserver2/Objects/%s' % event_ntiid
+        res = self.testapp.get(event_url).json_body
+
+        base_search_url = \
+            self.require_link_href_with_rel(res, 'search-possible-attendees')
+
+        res = self.testapp.get("%s/Owner" % base_search_url).json_body
+        assert_that(res['Items'], contains(has_entries(Username=username)))
+
+        res = self.testapp.get("%s/Xao" % base_search_url).json_body
+        assert_that(res['Items'], has_length(0))
+
+    def _create_event(self, user, calendar):
+        event = CalendarEvent(title="Test Event")
+        event.creator = user
+        event.__acl__ = self._event_acl(None)
+        return calendar.store_event(event)
+
+    def _create_calendar(self, user):
+        calendar = MockCalendar(title=u"study")
+        calendar.containerId = u'container_id'
+        calendar.id = u'container_id'
+        interface.alsoProvides(calendar, IContained)
+        user.addContainedObject(calendar)
+        return calendar
 
 
 @contextmanager

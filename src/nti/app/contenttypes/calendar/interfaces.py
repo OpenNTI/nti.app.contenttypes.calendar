@@ -52,6 +52,12 @@ class ICalendarEventAttendanceManager(interface.Interface):
     Handles the logic for adding users as attendee for an event
     """
 
+    def attendee_search_predicate(user):
+        """
+        Returns a boolean indicates whether the given user should be
+        returned from a search of users to check-in to an event.
+        """
+
     def add_attendee(user, creator=None, registration_time=None):
         """
         Add the user provided as an attendee to the event.
