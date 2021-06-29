@@ -12,6 +12,8 @@ from pyramid.interfaces import IRequest
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from nti.app.authentication import get_remote_user
 
 from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
@@ -39,7 +41,7 @@ from nti.dataserver.authorization_acl import has_permission
 from nti.links import Link
 
 
-@component.adapter(ICalendarEventAttendanceContainer)
+@component.adapter(ICalendarEvent)
 @interface.implementer(ICalendarEventAttendanceManager)
 class DefaultEventAttendanceManager(object):
 
@@ -48,6 +50,13 @@ class DefaultEventAttendanceManager(object):
 
     def can_attend(self, user):
         return has_permission(ACT_READ, self.context, user.username)
+
+    def attendee_search_predicate(self, user):
+        return user == self.context.creator
+
+    @Lazy
+    def container(self):
+        return ICalendarEventAttendanceContainer(self.context)
 
     def add_attendee(self, user, creator=None, registration_time=None):
         attendance = UserCalendarEventAttendance()
@@ -58,7 +67,7 @@ class DefaultEventAttendanceManager(object):
             raise InvalidAttendeeError(u"Registration forbidden for user %s to this event." % user.username)
 
         try:
-            return self.context.add_attendance(user, attendance)
+            return self.container.add_attendance(user, attendance)
         except KeyError:
             raise DuplicateAttendeeError(u"User %s already registered." % user.username)
 
@@ -110,3 +119,9 @@ class DefaultCalendarEventAttendanceLinkSource(object):
                 )
 
         return result
+
+
+@component.adapter(ICalendarEventAttendanceContainer)
+@interface.implementer(ICalendarEventAttendanceManager)
+def container_to_attendance_manager(container):
+    return ICalendarEventAttendanceManager(ICalendarEvent(container))

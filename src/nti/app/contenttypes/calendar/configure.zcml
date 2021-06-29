@@ -55,8 +55,12 @@
              provides="zope.traversing.interfaces.IPathAdapter"
              name="EventAttendance" />
 
-    <adapter factory=".attendance.DefaultEventAttendanceManager"
+    <adapter factory=".attendance.container_to_attendance_manager"
              for="nti.contenttypes.calendar.interfaces.ICalendarEventAttendanceContainer"
+             provides="nti.app.contenttypes.calendar.interfaces.ICalendarEventAttendanceManager" />
+
+    <adapter factory=".attendance.DefaultEventAttendanceManager"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
              provides=".interfaces.ICalendarEventAttendanceManager" />
 
     <adapter factory=".attendance.DefaultCalendarEventAttendanceLinkSource"

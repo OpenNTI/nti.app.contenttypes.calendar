@@ -691,9 +691,14 @@ class SearchPossibleAttendees(UserSearchView):
 
     def filter_result(self, all_results):
         results = []
+
+        attendance_manager = ICalendarEventAttendanceManager(self.context)
+        predicate = attendance_manager.attendee_search_predicate
+
         for result in all_results:
-            if IUser.providedBy(result):
+            if IUser.providedBy(result) and predicate(result):
                 results.append(result)
+
         return super(SearchPossibleAttendees, self).filter_result(results)
 
 
