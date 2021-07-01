@@ -24,9 +24,13 @@ from zc.displayname.interfaces import IDisplayNameGenerator
 from zope import component
 from zope import interface
 
+from zope.component.hooks import getSite
+
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.contenttypes.calendar.utils import generate_calendar_event_url
+
+from nti.appserver.interfaces import IPreferredAppHostnameProvider
 
 from nti.appserver.policies.interfaces import ISitePolicyUserEventListener
 
@@ -67,7 +71,7 @@ class CalendarEventNotifier(object):
     def _remaining(self):
         start = calendar.timegm(self.context.start_time.utctimetuple())
         remaining = start - time.time()
-        return int(math.ceil(remaining/60)) if remaining > 0 else None
+        return int(math.ceil(remaining / 60)) if remaining > 0 else None
 
     @Lazy
     def _event_start(self):
@@ -96,25 +100,27 @@ class CalendarEventNotifier(object):
         policy = component.getUtility(ISitePolicyUserEventListener)
         return getattr(policy, 'PACKAGE', None)
 
-    def _get_request(self, request, app_url):
+    def _get_request(self, request):
         if request is None:
-            # fake a request
-            environ = {}
-            if app_url:
-                environ = environ_from_url(app_url)
+            site_name = getSite().__name__
+            provider = component.queryUtility(IPreferredAppHostnameProvider)
+            if provider is not None:
+                site_name = provider.get_preferred_hostname(site_name)
+            # fake a request - assuming https and no port
+            environ = environ_from_url('https://%s' % site_name)
             request = Request(environ)
             request.context = self.context
             request.registry = get_current_registry()
         return request
 
-    def _do_send(self, mailer, app_url=None, *args, **kwargs):
+    def _do_send(self, mailer, *args, **kwargs):
         # do not send if the event has started?
         if self._remaining is None:
             logger.warning("Ignoring the notification of started calendar event (title=%s, start_time=%s).",
                            self.context.title, self.context.start_time)
             return
 
-        request = self._get_request(get_current_request(), app_url)
+        request = self._get_request(get_current_request())
         for user in self._recipients() or ():
             if not IUser.providedBy(user):
                 continue
