@@ -17,14 +17,20 @@ from pyramid.request import Request
 from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import get_current_request
 
+from webob.request import environ_from_url
+
 from zc.displayname.interfaces import IDisplayNameGenerator
 
 from zope import component
 from zope import interface
 
+from zope.component.hooks import getSite
+
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.contenttypes.calendar.utils import generate_calendar_event_url
+
+from nti.appserver.interfaces import IPreferredAppHostnameProvider
 
 from nti.appserver.policies.interfaces import ISitePolicyUserEventListener
 
@@ -65,7 +71,7 @@ class CalendarEventNotifier(object):
     def _remaining(self):
         start = calendar.timegm(self.context.start_time.utctimetuple())
         remaining = start - time.time()
-        return int(math.ceil(remaining/60)) if remaining > 0 else None
+        return int(math.ceil(remaining / 60)) if remaining > 0 else None
 
     @Lazy
     def _event_start(self):
@@ -76,8 +82,8 @@ class CalendarEventNotifier(object):
         # For testing.
         return generate_calendar_event_url(self.context)
 
-    def _template_args(self, user, **kwargs):
-        display_name = component.getMultiAdapter((user, self._request), IDisplayNameGenerator)()
+    def _template_args(self, user, request, **kwargs):
+        display_name = component.getMultiAdapter((user, request), IDisplayNameGenerator)()
         template_args = {}
         template_args.update({
             'display_name': display_name,
@@ -94,12 +100,15 @@ class CalendarEventNotifier(object):
         policy = component.getUtility(ISitePolicyUserEventListener)
         return getattr(policy, 'PACKAGE', None)
 
-    @Lazy
-    def _request(self):
-        request = get_current_request()
+    def _get_request(self, request):
         if request is None:
-            # fake a request
-            request = Request({})
+            site_name = getSite().__name__
+            provider = component.queryUtility(IPreferredAppHostnameProvider)
+            if provider is not None:
+                site_name = provider.get_preferred_hostname(site_name)
+            # fake a request - assuming https and no port
+            environ = environ_from_url('https://%s' % site_name)
+            request = Request(environ)
             request.context = self.context
             request.registry = get_current_registry()
         return request
@@ -111,6 +120,7 @@ class CalendarEventNotifier(object):
                            self.context.title, self.context.start_time)
             return
 
+        request = self._get_request(get_current_request())
         for user in self._recipients() or ():
             if not IUser.providedBy(user):
                 continue
@@ -123,10 +133,10 @@ class CalendarEventNotifier(object):
             mailer.queue_simple_html_text_email(self.template,
                                                 subject=self._subject(),
                                                 recipients=[user],
-                                                template_args=self._template_args(user, **kwargs),
+                                                template_args=self._template_args(user, request, **kwargs),
                                                 reply_to=None,
                                                 package=self._calendar_pkg(),
-                                                request=self._request,
+                                                request=request,
                                                 text_template_extension=self.text_template_extension)
 
     def notify(self, *args, **kwargs):
