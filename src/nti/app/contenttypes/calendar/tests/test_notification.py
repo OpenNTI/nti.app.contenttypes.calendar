@@ -40,13 +40,17 @@ class TestNotification(ApplicationLayerTest):
     def testCalendarEventNotifier(self, mock_mailer):
         user1 = User.create_user(username=u'test001')
         user2 = User.create_user(username=u'test002')
+
         class _MockEventNotifier(CalendarEventNotifier):
+
             def _calendar_context(self):
                 return u'Course'
+
             def _recipients(self):
                 return [user1, u'abc', user2, None]
 
         class _MockItem(object):
+
             def __init__(self, template, subject, recipients, template_args, reply_to, package, request, text_template_extension):
                 self.template = template
                 self.subject = subject
@@ -58,6 +62,7 @@ class TestNotification(ApplicationLayerTest):
                 self.text_template_extension = text_template_extension
 
         class _MockMailer(object):
+
             def __init__(self):
                 self.data = []
 
@@ -103,3 +108,10 @@ class TestNotification(ApplicationLayerTest):
                                                                      'request': not_none(),
                                                                      'text_template_extension': '.mak'}))
             assert_that(_mailer.data[1].recipients[0], is_(user2))
+
+            # If no request, we build one with correct app_url
+            request = notifier._get_request(None, 'https://overstory.com')
+            assert_that(request.application_url, is_('https://overstory.com'))
+
+            request = notifier._get_request(None, None)
+            assert_that(request, not_none())

@@ -17,6 +17,8 @@ from pyramid.request import Request
 from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import get_current_request
 
+from webob.request import environ_from_url
+
 from zc.displayname.interfaces import IDisplayNameGenerator
 
 from zope import component
@@ -76,8 +78,8 @@ class CalendarEventNotifier(object):
         # For testing.
         return generate_calendar_event_url(self.context)
 
-    def _template_args(self, user, **kwargs):
-        display_name = component.getMultiAdapter((user, self._request), IDisplayNameGenerator)()
+    def _template_args(self, user, request, **kwargs):
+        display_name = component.getMultiAdapter((user, request), IDisplayNameGenerator)()
         template_args = {}
         template_args.update({
             'display_name': display_name,
@@ -94,23 +96,25 @@ class CalendarEventNotifier(object):
         policy = component.getUtility(ISitePolicyUserEventListener)
         return getattr(policy, 'PACKAGE', None)
 
-    @Lazy
-    def _request(self):
-        request = get_current_request()
+    def _get_request(self, request, app_url):
         if request is None:
             # fake a request
-            request = Request({})
+            environ = {}
+            if app_url:
+                environ = environ_from_url(app_url)
+            request = Request(environ)
             request.context = self.context
             request.registry = get_current_registry()
         return request
 
-    def _do_send(self, mailer, *args, **kwargs):
+    def _do_send(self, mailer, app_url=None, *args, **kwargs):
         # do not send if the event has started?
         if self._remaining is None:
             logger.warning("Ignoring the notification of started calendar event (title=%s, start_time=%s).",
                            self.context.title, self.context.start_time)
             return
 
+        request = self._get_request(get_current_request(), app_url)
         for user in self._recipients() or ():
             if not IUser.providedBy(user):
                 continue
@@ -123,10 +127,10 @@ class CalendarEventNotifier(object):
             mailer.queue_simple_html_text_email(self.template,
                                                 subject=self._subject(),
                                                 recipients=[user],
-                                                template_args=self._template_args(user, **kwargs),
+                                                template_args=self._template_args(user, request, **kwargs),
                                                 reply_to=None,
                                                 package=self._calendar_pkg(),
-                                                request=self._request,
+                                                request=request,
                                                 text_template_extension=self.text_template_extension)
 
     def notify(self, *args, **kwargs):
