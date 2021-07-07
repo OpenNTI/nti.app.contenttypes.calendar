@@ -7,9 +7,12 @@ from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
 from contextlib import contextmanager
+from functools import partial
 
+from hamcrest import has_item
 from hamcrest import is_
 from hamcrest import contains
+from hamcrest import not_
 from hamcrest import not_none
 from hamcrest import has_entries
 from hamcrest import has_length
@@ -396,18 +399,14 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
     def test_attendence_csv_export(self):
         username = u'testuser001@nextthought.com'
         with mock_dataserver.mock_db_trans(self.ds):
-            calendar = MockCalendar(title=u"study")
-            calendar.containerId = u'container_id'
-            calendar.id = u'container_id'
-            interface.alsoProvides(calendar, IContained)
-
             user = self._create_user(username)
-            user.addContainedObject(calendar)
 
-            event = CalendarEvent(title="Test Event")
-            event.__acl__ = self._event_acl(('test_student1', 'test_student2'))
-            calendar.store_event(event)
-            event_ntiid = to_external_ntiid_oid(event)
+            calendar = self._create_calendar(user)
+            event = self._create_event(user, calendar,
+                                       allowed_principals=('test_student1',
+                                                           'test_student2'))
+            event_ntiid = event.ntiid
+            assert_that(event_ntiid, not_none())
 
         assert_that(event_ntiid, not_none())
 
@@ -417,13 +416,7 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
         record_attendance_url = '%s/EventAttendance' % event_url
 
-        def record_attendance(env, username_, registration_time=None, **kwargs):
-            kwargs['extra_environ'] = env
-            data = {
-                'Username': username_,
-                'registrationTime': registration_time,
-            }
-            return self.testapp.post_json(record_attendance_url, data, **kwargs)
+        record_attendance = partial(self.record_attendance, record_attendance_url)
 
         admin_env = self._make_extra_environ()
 
@@ -513,10 +506,62 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
         res = self.testapp.get("%s/Xao" % base_search_url).json_body
         assert_that(res['Items'], has_length(0))
 
-    def _create_event(self, user, calendar):
+    def record_attendance(self, record_attendance_url, env, username_,
+                          registration_time=None, **kwargs):
+        kwargs['extra_environ'] = env
+        data = {
+            'Username': username_,
+            'registrationTime': registration_time,
+        }
+        return self.testapp.post_json(record_attendance_url, data, **kwargs)
+
+    @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
+    def test_registration_time_decoration(self):
+        with mock_dataserver.mock_db_trans(self.ds):
+            user = self._get_user(self.default_username)
+            self._create_user('student_one',
+                              external_value={
+                                  'realname': u'Maybe Attendee',
+                              })
+
+            calendar = self._create_calendar(user)
+
+            event = self._create_event(user, calendar,
+                                       allowed_principals=('student_one',))
+            event_ntiid = event.ntiid
+            assert_that(event_ntiid, not_none())
+
+        event_url = '/dataserver2/Objects/%s' % event_ntiid
+
+        # Admin/Owner shouldn't have a registration time
+        res = self.testapp.get(event_url).json_body
+        assert_that(res, not_(has_item('RegistrationTime')))
+
+        # Attendee shouldn't have a registration time yet
+        attendee_env = self._make_extra_environ('student_one')
+        res = self.testapp.get(event_url, extra_environ=attendee_env).json_body
+        assert_that(res, not_(has_item('RegistrationTime')))
+
+        # Record attendance for attendee
+        record_attendance_url = '%s/EventAttendance' % event_url
+        admin_env = self._make_extra_environ()
+        registration_time = self._registration_time()
+        self.record_attendance(record_attendance_url, admin_env, 'student_one',
+                               registration_time=registration_time)
+
+        # Admin/Owner shouldn't have a registration time
+        res = self.testapp.get(event_url).json_body
+        assert_that(res, not_(has_item('RegistrationTime')))
+
+        # Attendee should now have a registration time
+        attendee_env = self._make_extra_environ('student_one')
+        res = self.testapp.get(event_url, extra_environ=attendee_env).json_body
+        assert_that(res.get('RegistrationTime'), is_(registration_time))
+
+    def _create_event(self, user, calendar, allowed_principals=None):
         event = CalendarEvent(title="Test Event")
         event.creator = user
-        event.__acl__ = self._event_acl(None)
+        event.__acl__ = self._event_acl(allowed_principals)
         return calendar.store_event(event)
 
     def _create_calendar(self, user):

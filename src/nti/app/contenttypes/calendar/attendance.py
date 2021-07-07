@@ -14,6 +14,8 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from zope.security.interfaces import IPrincipal
+
 from nti.app.authentication import get_remote_user
 
 from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
@@ -33,6 +35,9 @@ from nti.contenttypes.calendar.attendance import UserCalendarEventAttendance
 from nti.contenttypes.calendar.interfaces import ICalendarDynamicEvent
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
 from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
+from nti.contenttypes.calendar.interfaces import IUserCalendarEventAttendance
+
+from nti.coremetadata.interfaces import IUser
 
 from nti.dataserver.authorization import ACT_READ
 
@@ -125,3 +130,11 @@ class DefaultCalendarEventAttendanceLinkSource(object):
 @interface.implementer(ICalendarEventAttendanceManager)
 def container_to_attendance_manager(container):
     return ICalendarEventAttendanceManager(ICalendarEvent(container))
+
+
+@component.adapter(ICalendarEvent, IUser)
+@interface.implementer(IUserCalendarEventAttendance)
+def user_calendar_event_attendance(event, user):
+    attendance_container = ICalendarEventAttendanceContainer(event)
+    principal_id = IPrincipal(user).id
+    return attendance_container.get(principal_id)

@@ -59,6 +59,11 @@
              for="nti.contenttypes.calendar.interfaces.ICalendarEventAttendanceContainer"
              provides="nti.app.contenttypes.calendar.interfaces.ICalendarEventAttendanceManager" />
 
+    <adapter factory=".attendance.user_calendar_event_attendance"
+             for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                  nti.coremetadata.interfaces.IUser"
+             provides="nti.contenttypes.calendar.interfaces.IUserCalendarEventAttendance" />
+
     <adapter factory=".attendance.DefaultEventAttendanceManager"
              for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
              provides=".interfaces.ICalendarEventAttendanceManager" />
@@ -101,6 +106,11 @@
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
     <subscriber factory=".decorators.CalendarEventAttendanceLinkDecorator"
+                for="nti.contenttypes.calendar.interfaces.ICalendarEvent
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+    <subscriber factory=".decorators.CalendarEventRegistrationTimeDecorator"
                 for="nti.contenttypes.calendar.interfaces.ICalendarEvent
                      pyramid.interfaces.IRequest"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
