@@ -143,3 +143,14 @@ class CalendarEventAttendanceLinkDecorator(AbstractAuthenticatedRequestAwareDeco
             links = result.setdefault(LINKS, [])
             for link in link_source.links():
                 links.append(link)
+
+
+@component.adapter(ICalendarEvent)
+@interface.implementer(IExternalObjectDecorator)
+class CalendarEventRegistrationTimeDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+    def _do_decorate_external(self, context, result):
+        attendance = component.queryMultiAdapter((context, self.remoteUser),
+                                                 IUserCalendarEventAttendance)
+        if attendance:
+            result['RegistrationTime'] = attendance.registrationTime
