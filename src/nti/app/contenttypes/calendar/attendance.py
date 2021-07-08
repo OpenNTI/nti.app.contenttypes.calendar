@@ -23,6 +23,7 @@ from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
+from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
 
 from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
@@ -44,6 +45,10 @@ from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization_acl import has_permission
 
 from nti.links import Link
+
+from nti.schema.fieldproperty import createDirectFieldProperties
+
+from nti.schema.schema import SchemaConfigured
 
 
 @component.adapter(ICalendarEvent)
@@ -138,3 +143,19 @@ def user_calendar_event_attendance(event, user):
     attendance_container = ICalendarEventAttendanceContainer(event)
     principal_id = IPrincipal(user).id
     return attendance_container.get(principal_id)
+
+
+@interface.implementer(IEventUserSearchHit)
+class EventUserSearchHit(SchemaConfigured):
+    createDirectFieldProperties(IEventUserSearchHit)
+
+    __external_can_create__ = False
+
+    def __init__(self, **kwargs):
+        SchemaConfigured.__init__(self, **kwargs)
+
+
+@component.adapter(IUser, ICalendarEvent)
+@interface.implementer(IEventUserSearchHit)
+def get_search_hit(user, event):
+    return EventUserSearchHit(User=user, Event=event)

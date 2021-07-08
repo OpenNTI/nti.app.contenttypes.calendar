@@ -501,10 +501,25 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
             self.require_link_href_with_rel(res, 'search-possible-attendees')
 
         res = self.testapp.get("%s/Owner" % base_search_url).json_body
-        assert_that(res['Items'], contains(has_entries(Username=username)))
+        assert_that(res['Items'], has_length(1))
+        assert_that(res['Items'][0],
+                    has_entries(User=has_entries(Username=username)))
+        self.forbid_link_with_rel(res['Items'][0], 'attendance')
 
         res = self.testapp.get("%s/Xao" % base_search_url).json_body
         assert_that(res['Items'], has_length(0))
+
+        # Record attendance for searchable user (owner)
+        record_attendance_url = '%s/EventAttendance' % event_url
+        admin_env = self._make_extra_environ()
+        self.record_attendance(record_attendance_url, admin_env, username)
+
+        # Ensure attendance metadata is updated
+        res = self.testapp.get("%s/Owner" % base_search_url).json_body
+        assert_that(res['Items'], has_length(1))
+        assert_that(res['Items'][0],
+                    has_entries(User=has_entries(Username=username)))
+        self.require_link_href_with_rel(res['Items'][0], 'attendance')
 
     def record_attendance(self, record_attendance_url, env, username_,
                           registration_time=None, **kwargs):

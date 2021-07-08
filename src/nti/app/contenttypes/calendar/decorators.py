@@ -13,6 +13,7 @@ from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
+from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 
 from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
 
@@ -68,7 +69,7 @@ class _CalendarLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
         for rel in (CONTENTS_VIEW_NAME, EXPORT_VIEW_NAME):
             _link = Link(context,
                          rel=rel,
-                         elements=('@@'+rel, ),
+                         elements=('@@' + rel,),
                          method='GET')
             link_belongs_to_context(_link, context)
             _links.append(_link)
@@ -123,7 +124,7 @@ class UserCalendarEventAttendanceDeleteLinkDecorator(AbstractAuthenticatedReques
 
     def _predicate(self, context, result):
         return AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result) \
-            and self._has_permission(context)
+               and self._has_permission(context)
 
     def _do_decorate_external(self, context, result):
         links = result.setdefault(LINKS, [])
@@ -154,3 +155,15 @@ class CalendarEventRegistrationTimeDecorator(AbstractAuthenticatedRequestAwareDe
                                                  IUserCalendarEventAttendance)
         if attendance:
             result['RegistrationTime'] = attendance.registrationTime
+
+
+@component.adapter(IEventUserSearchHit)
+@interface.implementer(IExternalMappingDecorator)
+class SearchHitLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+    def _do_decorate_external(self, context, result):
+        attendance = component.queryMultiAdapter((context.Event, context.User),
+                                                 IUserCalendarEventAttendance)
+        if attendance:
+            links = result.setdefault(LINKS, [])
+            links.append(Link(attendance, rel='attendance'))
