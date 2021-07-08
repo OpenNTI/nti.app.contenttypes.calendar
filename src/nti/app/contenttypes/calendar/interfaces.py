@@ -9,12 +9,17 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=inherit-non-class,expression-not-assigned
-
 from zope import interface
 
 from nti.appserver.workspaces.interfaces import IContainerCollection
 
+from nti.contenttypes.calendar.interfaces import ICalendarEvent
+
+from nti.coremetadata.interfaces import IUser
+
 from nti.dataserver.interfaces import IACLProvider
+
+from nti.schema.field import Object
 
 
 class ICalendarACLProvider(IACLProvider):
@@ -85,3 +90,11 @@ class ICalendarEventAttendanceLinkSource(interface.Interface):
         :return: Iterable of links for attendance-related views like
         recording, removing, and listing attendance records.
         """
+
+
+class IEventUserSearchHit(interface.Interface):
+
+    Event = Object(ICalendarEvent, title=u'The event used for the search.')
+    Event.setTaggedValue('_ext_excluded_out', True)
+
+    User = Object(IUser, title=u'The matching user record.')

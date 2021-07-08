@@ -11,14 +11,21 @@ import fudge
 
 from hamcrest import assert_that
 from hamcrest import contains_inanyorder
+from hamcrest import has_entries
+from hamcrest import has_key
 from hamcrest import has_length
 from hamcrest import has_property
+from hamcrest import is_
+from hamcrest import none
+from hamcrest import not_
 
 from pyramid.request import Request
 
 from zope import interface
 
 from nti.app.contenttypes.calendar.attendance import DefaultCalendarEventAttendanceLinkSource
+from nti.app.contenttypes.calendar.attendance import EventUserSearchHit
+from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 
 from nti.app.contenttypes.calendar.tests import SharedConfiguringTestLayer
 
@@ -30,6 +37,16 @@ from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 from nti.contenttypes.calendar.interfaces import ICalendarDynamicEvent
 
 from nti.contenttypes.calendar.model import CalendarEvent
+
+from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
+
+from nti.dataserver.users import User
+
+from nti.externalization import internalization
+
+from nti.externalization.externalization import toExternalObject
+
+from nti.testing.matchers import verifiably_provides
 
 
 class ITestCalendarDynamicEvent(ICourseCalendarEvent, ICalendarDynamicEvent):
@@ -128,3 +145,32 @@ class TestCalendarEventAttendanceLinkSource(TestCase):
         link_source = DefaultCalendarEventAttendanceLinkSource(event, request)
 
         assert_that(link_source.links(), has_length(0))
+
+
+class TestEventUserSearchHit(TestCase):
+
+    layer = SharedConfiguringTestLayer
+
+    @WithMockDSTrans
+    def test_provides(self):
+        event = CalendarEvent(title=u'abc')
+        user = User.create_user(username='test_user')
+
+        search_hit = EventUserSearchHit(Event=event, User=user)
+
+        assert_that(search_hit, verifiably_provides(IEventUserSearchHit))
+
+    @WithMockDSTrans
+    def test_externalize(self):
+        event = CalendarEvent(title=u'abc')
+        user = User.create_user(username='test_user')
+
+        obj = EventUserSearchHit(Event=event, User=user)
+
+        external = toExternalObject(obj)
+        assert_that(external, has_entries({'User': has_entries(Username='test_user'),
+                                           'MimeType': 'application/vnd.nextthought.calendar.eventusersearchhit'}))
+        assert_that(external, not_(has_key('Event')))
+
+        factory = internalization.find_factory_for(external)
+        assert_that(factory, is_(none()))

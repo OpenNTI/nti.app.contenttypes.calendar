@@ -73,6 +73,11 @@
                   pyramid.interfaces.IRequest"
              provides=".interfaces.ICalendarEventAttendanceLinkSource" />
 
+    <adapter factory=".attendance.get_search_hit"
+             for="nti.coremetadata.interfaces.IUser
+                  nti.contenttypes.calendar.interfaces.ICalendarEvent"
+             provides=".interfaces.IEventUserSearchHit" />
+
 	<!-- decorators -->
 	<subscriber factory=".decorators._CalendarEventDecorator"
                 for="nti.contenttypes.calendar.interfaces.ICalendarEvent"
@@ -115,6 +120,11 @@
                      pyramid.interfaces.IRequest"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
+    <subscriber factory=".decorators.SearchHitLinkDecorator"
+                for=".interfaces.IEventUserSearchHit
+                     pyramid.interfaces.IRequest"
+                provides="nti.externalization.interfaces.IExternalMappingDecorator" />
+
 	<include package=".entity" file="configure.zcml" />
 
 	<include package=".notables" file="configure.zcml" />
@@ -127,5 +137,9 @@
     <subscriber factory=".workspaces._admin_calendar_collection_factory"
                 provides=".interfaces.IAdminCalendarCollection"
                 for="nti.appserver.workspaces.interfaces.IUserWorkspace" />
+
+    <ext:registerAutoPackageIO
+            root_interfaces=".interfaces.IEventUserSearchHit"
+            modules=".attendance" />
 
 </configure>

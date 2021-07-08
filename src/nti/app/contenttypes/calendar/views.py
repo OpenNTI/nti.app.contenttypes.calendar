@@ -43,6 +43,7 @@ from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
+from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
 
 from nti.app.contenttypes.calendar.utils import generate_ics_feed_url
@@ -73,12 +74,13 @@ from nti.coremetadata.interfaces import IUser
 
 from nti.dataserver import authorization as nauth
 
-
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IFriendlyNamed
 from nti.dataserver.users.interfaces import IProfileDisplayableSupplementalFields
 from nti.dataserver.users.interfaces import IUserProfile
+
+from nti.externalization import to_external_object
 
 from nti.externalization.datetime import datetime_from_string
 
@@ -683,11 +685,23 @@ class CalendarEventAttendanceView(AbstractAuthenticatedView,
              name='UserSearch')
 class SearchPossibleAttendees(UserSearchView):
     """
-    A user search within the context of a calendar event.  Currently
-    simply limits us to only users, but could be extended to ensure only
-    certain subsets of users were returned, e.g. users that were enrolled
-    in an associated course.
+    A user search within the context of a calendar event.  Transforms
+    user search results to limit it to only users (e.g. not communities),
+    apply a filter obtained by adapting the event, and provide additional
+    information regarding attendane status.
     """
+
+    def _search_result(self, user):
+        """
+        Wrap our result in a search hit object to allow providing
+        additional metadata about the hit (via decoration).
+        """
+        return component.getMultiAdapter((user, self.context),
+                                         IEventUserSearchHit)
+
+    def externalize_objects(self, results):
+        return [to_external_object(self._search_result(user))
+                for user in results]
 
     def filter_result(self, all_results):
         results = []
