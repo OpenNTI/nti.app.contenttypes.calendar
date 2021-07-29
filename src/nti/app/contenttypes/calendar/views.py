@@ -74,6 +74,8 @@ from nti.coremetadata.interfaces import IUser
 
 from nti.dataserver import authorization as nauth
 
+from nti.dataserver.authorization import is_admin_or_content_admin_or_site_admin
+
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IFriendlyNamed
@@ -705,7 +707,9 @@ class SearchPossibleAttendees(UserSearchView):
                                          IEventUserSearchHit)
 
     def externalize_objects(self, results):
-        return [to_external_object(self._search_result(user))
+        is_admin = is_admin_or_content_admin_or_site_admin(self.remoteUser)
+        kwargs = {'name': 'admin-summary'} if is_admin else {}
+        return [to_external_object(self._search_result(user), **kwargs)
                 for user in results]
 
     def filter_result(self, all_results):
