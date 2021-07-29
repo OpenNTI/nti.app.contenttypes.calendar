@@ -689,6 +689,11 @@ class SearchPossibleAttendees(UserSearchView):
     user search results to limit it to only users (e.g. not communities),
     apply a filter obtained by adapting the event, and provide additional
     information regarding attendane status.
+
+    Note that this uses the cache_control max_age defined by UserSearchView,
+    which may mean that the response is stale when attendance or enrollment
+    is changed.  This is a bigger problem in testing, since we use similar
+    names, but we may need to revisit if it becomes a problem in practice.
     """
 
     def _search_result(self, user):
