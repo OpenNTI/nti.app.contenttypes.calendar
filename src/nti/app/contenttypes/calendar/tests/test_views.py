@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from functools import partial
 
 from hamcrest import has_item
+from hamcrest import has_key
 from hamcrest import is_
 from hamcrest import contains
 from hamcrest import not_
@@ -25,6 +26,8 @@ from datetime import datetime
 
 from zope import component
 from zope import interface
+
+from zope.securitypolicy.interfaces import IPrincipalPermissionManager
 
 from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
@@ -49,11 +52,14 @@ from nti.dataserver.authorization_acl import ace_denying_all
 
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
+from nti.dataserver.users import Community
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IProfileDisplayableSupplementalFields
 
 from nti.externalization.externalization.standard_fields import datetime_to_string
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.ntiids.oids import to_external_ntiid_oid
 
@@ -385,10 +391,13 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
         registration_time = (datetime.utcnow().replace(microsecond=0))
         return datetime_to_string(registration_time)
 
-    def _event_acl(self, principals_with_read):
+    def _event_acl(self, creator, principals_with_read):
         aces = [ace_allowing(ROLE_ADMIN, ACT_RECORD_EVENT_ATTENDANCE, type(self)),
                 ace_allowing(ROLE_ADMIN, ACT_VIEW_EVENT_ATTENDANCE, type(self)),
-                ace_allowing(ROLE_ADMIN, ACT_READ, type(self))]
+                ace_allowing(ROLE_ADMIN, ACT_READ, type(self)),
+                ace_allowing(creator, ACT_RECORD_EVENT_ATTENDANCE, type(self)),
+                ace_allowing(creator, ACT_VIEW_EVENT_ATTENDANCE, type(self)),
+                ace_allowing(creator, ACT_READ, type(self))]
         for prin in principals_with_read or ():
             aces.append(ace_allowing(prin, ACT_READ, type(self)))
         aces.append(ace_denying_all())
@@ -477,16 +486,24 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
     @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
     def test_search(self):
-        username = u'testuser001@nextthought.com'
+        username = u'testuser001'
         with mock_dataserver.mock_db_trans(self.ds):
+            community = Community.create_community(username='comm1',
+                                                   external_value={
+                                                       'realname': u'Shared Community',
+                                                   })
+
             user = self._create_user(username,
                                      external_value={
                                          'realname': u'Ben Owner'
                                      })
-            self._create_user('unsearchable',
-                              external_value={
-                                  'realname': u'Xao Ma',
-                              })
+            user.record_dynamic_membership(community)
+            non_admin = self._create_user('unsearchable',
+                                          external_value={
+                                              'realname': u'Xao Ma',
+                                          })
+            non_admin.record_dynamic_membership(community)
+            non_admin_username = non_admin.username
 
             calendar = self._create_calendar(user)
 
@@ -520,6 +537,41 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
         assert_that(res['Items'][0],
                     has_entries(User=has_entries(Username=username)))
         self.require_link_href_with_rel(res['Items'][0], 'attendance')
+
+        # Check externalizers
+        #   admin-summary
+        search_url = "%s/Owner" % base_search_url
+        res = self.testapp.get(search_url).json_body
+        assert_that(res['Items'], has_length(1))
+        self._check_lookup(res['Items'][0]['User'], has=('email',),
+                           not_has=('NotificationCount',))
+
+        #   personal-summary
+        owner_env = self._make_extra_environ(username)
+        res = self.testapp.get(search_url, extra_environ=owner_env).json_body
+        assert_that(res['Items'], has_length(1))
+        self._check_lookup(res['Items'][0]['User'], has=('email', 'NotificationCount'))
+
+        #   summary
+        with mock_dataserver.mock_db_trans():
+            # Need to grant another user access to test externalizer
+            event = find_object_with_ntiid(event_ntiid)
+            ppm = IPrincipalPermissionManager(event)
+            ppm.grantPermissionToPrincipal(ACT_RECORD_EVENT_ATTENDANCE.id,
+                                           non_admin_username)
+
+        non_admin_env = self._make_extra_environ(non_admin_username)
+        res = self.testapp.get(search_url, extra_environ=non_admin_env).json_body
+        assert_that(res['Items'], has_length(1))
+        self._check_lookup(res['Items'][0]['User'],
+                           not_has=('email', 'NotificationCount'))
+
+    def _check_lookup(self, item, has=None, not_has=None):
+        for key in has or ():
+            assert_that(item, has_key(key))
+
+        for key in not_has or ():
+            assert_that(item, not_(has_key(key)))
 
     def record_attendance(self, record_attendance_url, env, username_,
                           registration_time=None, **kwargs):
@@ -576,7 +628,7 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
     def _create_event(self, user, calendar, allowed_principals=None):
         event = CalendarEvent(title="Test Event")
         event.creator = user
-        event.__acl__ = self._event_acl(allowed_principals)
+        event.__acl__ = self._event_acl(user.username, allowed_principals)
         return calendar.store_event(event)
 
     def _create_calendar(self, user):
