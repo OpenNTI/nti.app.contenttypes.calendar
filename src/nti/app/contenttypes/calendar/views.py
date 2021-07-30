@@ -667,7 +667,10 @@ class CalendarEventAttendanceView(AbstractAuthenticatedView,
                                    selector=to_external,
                                    number_items_needed=total_items)
 
-        return result_dict.get(ITEMS)
+        is_admin = is_admin_or_content_admin_or_site_admin(self.remoteUser)
+        kwargs = {'name': 'admin-summary'} if is_admin else {}
+        return [to_external_object(record, **kwargs)
+                for record in result_dict.get(ITEMS)]
 
     def __call__(self):
         result_dict = LocatedExternalDict()
