@@ -39,6 +39,9 @@ from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
 from nti.app.contenttypes.calendar import GENERATE_FEED_URL
 from nti.app.contenttypes.calendar import MessageFactory as _
 
+from nti.app.contenttypes.calendar.authorization import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.contenttypes.calendar.authorization import ACT_VIEW_EVENT_ATTENDANCE
+
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import IAdminCalendarCollection
 from nti.app.contenttypes.calendar.interfaces import ICalendarCollection
@@ -53,9 +56,6 @@ from nti.app.externalization.error import raise_json_error
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
-from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
-
 from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.appserver.usersearch_views import UserSearchView
@@ -67,8 +67,6 @@ from nti.contenttypes.calendar.interfaces import ICalendarDynamicEventProvider
 from nti.contenttypes.calendar.interfaces import ICalendarEvent
 from nti.contenttypes.calendar.interfaces import ICalendarEventAttendanceContainer
 from nti.contenttypes.calendar.interfaces import IUserCalendarEventAttendance
-
-from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.coremetadata.interfaces import IUser
 
@@ -90,6 +88,8 @@ from nti.externalization.externalization.standard_fields import datetime_to_stri
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.namedfile.file import safe_filename
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -740,8 +740,8 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
     """
 
     @Lazy
-    def course(self):
-        return ICourseInstance(self.context)
+    def event(self):
+        return ICalendarEvent(self.context)
 
     @staticmethod
     def _user_profile(username):
@@ -749,16 +749,20 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
         return IUserProfile(user)
 
     @staticmethod
-    def _registration_time_str(attendance_record):
-        registration_time = attendance_record.registrationTime
-        return datetime_to_string(registration_time)
+    def datetime_string(dt_obj):
+        return datetime_to_string(dt_obj)
 
     def _attendance_record_dict(self, attendance_record):
         profile = self._user_profile(attendance_record.Username)
         return {
+            'Event Name': self.event.title,
+            'Event Description': self.event.description,
+            'Event Location': self.event.location,
+            'Event Start Time': self.datetime_string(self.event.start_time),
+            'Event End Time': self.datetime_string(self.event.end_time),
             'Username': attendance_record.Username,
             'Real Name': profile.realname,
-            'Registration Time': self._registration_time_str(attendance_record)
+            'Registration Time': self.datetime_string(attendance_record.registrationTime)
         }
 
     @Lazy
@@ -797,9 +801,21 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
 
         return records
 
+    def _filename(self):
+        filename = "%(event_name)s_event_attendance.csv" % {
+            'event_name': self.event.title,
+        }
+        return safe_filename(filename)
+
+    def _fieldnames(self):
+        fieldnames = ['Event Name', 'Event Description', 'Event Location',
+                      'Event Start Time', 'Event End Time',
+                      'Username', 'Real Name', 'Registration Time']
+        return fieldnames
+
     def __call__(self):
         stream = BytesIO()
-        fieldnames = ['Username', 'Real Name', 'Registration Time']
+        fieldnames = self._fieldnames()
         if self._supplemental_field_provider:
             fieldnames.extend(self._supplemental_field_headers())
 
@@ -814,5 +830,6 @@ class ExportAttendanceCSVView(AbstractAuthenticatedView):
         response.body = stream.getvalue()
         response.content_encoding = 'identity'
         response.content_type = 'text/csv; charset=UTF-8'
-        response.content_disposition = 'attachment; filename="event_attendance.csv"'
+        response.content_disposition = 'attachment; filename="%s"' \
+                                       % (self._filename(),)
         return response
