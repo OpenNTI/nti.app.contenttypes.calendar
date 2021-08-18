@@ -20,14 +20,14 @@ from nti.app.authentication import get_remote_user
 
 from nti.app.contenttypes.calendar import EXPORT_ATTENDANCE_VIEW
 
+from nti.app.contenttypes.calendar.authorization import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.contenttypes.calendar.authorization import ACT_VIEW_EVENT_ATTENDANCE
+
 from nti.app.contenttypes.calendar.interfaces import DuplicateAttendeeError
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceManager
 from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 from nti.app.contenttypes.calendar.interfaces import InvalidAttendeeError
-
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
-from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
 from nti.appserver.pyramid_authorization import has_permission as app_has_permission
 

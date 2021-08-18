@@ -6,6 +6,10 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=protected-access,too-many-public-methods,arguments-differ
+import cgi
+
+from datetime import timedelta
+
 from contextlib import contextmanager
 from functools import partial
 
@@ -29,10 +33,10 @@ from zope import interface
 
 from zope.securitypolicy.interfaces import IPrincipalPermissionManager
 
-from nti.app.contenttypes.calendar.tests import CalendarLayerTest
+from nti.app.contenttypes.calendar.authorization import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.contenttypes.calendar.authorization import ACT_VIEW_EVENT_ATTENDANCE
 
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
-from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
+from nti.app.contenttypes.calendar.tests import CalendarLayerTest
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
@@ -411,9 +415,19 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
             user = self._create_user(username)
 
             calendar = self._create_calendar(user)
+
+            start_time = datetime.utcnow().replace(microsecond=0)
+            start_time_str = datetime_to_string(start_time)
+            end_time = start_time + timedelta(hours=1)
+            end_time_str = datetime_to_string(end_time)
             event = self._create_event(user, calendar,
                                        allowed_principals=('test_student1',
-                                                           'test_student2'))
+                                                           'test_student2'),
+                                       title=u'Workout',
+                                       description=u'Just do it!',
+                                       location=u'Home',
+                                       start_time=start_time,
+                                       end_time=end_time)
             event_ntiid = event.ntiid
             assert_that(event_ntiid, not_none())
 
@@ -441,8 +455,12 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
         export_attendance_url = '%s/@@ExportAttendance' % record_attendance_url
         res = self.testapp.get(export_attendance_url)
+        filename = cgi.parse_header(res.headers['Content-Disposition'])[1]['filename']
+        assert_that(filename, is_('Workout_event_attendance.csv'))
         assert_that(res.body,
-                    is_('Username,Real Name,Registration Time\r\n'))
+                    is_('Event Name,Event Description,Event Location,'
+                        'Event Start Time,Event End Time,Username,Real Name'
+                        ',Registration Time\r\n'))
 
         registration_time_1 = self._registration_time()
         record_attendance(admin_env, 'test_student1', registration_time_1)
@@ -452,17 +470,24 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
         res = self.testapp.get(export_attendance_url)
         assert_that(res.body,
-                    is_('Username,Real Name,Registration Time\r\n'
-                        + ('test_student1,Uno Student,%s\r\n' % registration_time_1)
-                        + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
+                    is_('Event Name,Event Description,Event Location,'
+                        'Event Start Time,Event End Time,Username,Real Name'
+                        ',Registration Time\r\n'
+                        + ('Workout,Just do it!,Home,%s,%s,test_student1,Uno Student,%s\r\n'
+                           % (start_time_str, end_time_str, registration_time_1))
+                        + ('Workout,Just do it!,Home,%s,%s,test_student2,Dos Student,%s\r\n'
+                           % (start_time_str, end_time_str, registration_time_2))))
 
         with mock_dataserver.mock_db_trans(self.ds):
             User.delete_user('test_student1')
 
         res = self.testapp.get(export_attendance_url)
         assert_that(res.body,
-                    is_('Username,Real Name,Registration Time\r\n'
-                        + ('test_student2,Dos Student,%s\r\n' % registration_time_2)))
+                    is_('Event Name,Event Description,Event Location,'
+                        'Event Start Time,Event End Time,Username,Real Name'
+                        ',Registration Time\r\n'
+                        + ('Workout,Just do it!,Home,%s,%s,test_student2,Dos Student,%s\r\n'
+                           % (start_time_str, end_time_str, registration_time_2))))
 
         @interface.implementer(IProfileDisplayableSupplementalFields)
         class _TestSupplementalFields(object):
@@ -481,8 +506,11 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
 
             res = self.testapp.get(export_attendance_url)
             assert_that(res.body,
-                        is_('Username,Real Name,Registration Time,Field One,Field Two\r\n'
-                            + ('test_student2,Dos Student,%s,value_1,\r\n' % registration_time_2)))
+                        is_('Event Name,Event Description,Event Location,'
+                            'Event Start Time,Event End Time,'
+                            'Username,Real Name,Registration Time,Field One,Field Two\r\n'
+                            + ('Workout,Just do it!,Home,%s,%s,test_student2,Dos Student,%s,value_1,\r\n'
+                               % (start_time_str, end_time_str, registration_time_2))))
 
     @WithSharedApplicationMockDS(users=True, testapp=True, default_authenticate=True)
     def test_search(self):
@@ -625,8 +653,18 @@ class TestCalendarAttendanceViews(CalendarLayerTest):
         res = self.testapp.get(event_url, extra_environ=attendee_env).json_body
         assert_that(res.get('RegistrationTime'), is_(registration_time))
 
-    def _create_event(self, user, calendar, allowed_principals=None):
-        event = CalendarEvent(title="Test Event")
+    def _create_event(self, user, calendar,
+                      allowed_principals=None,
+                      title=None,
+                      start_time=None,
+                      end_time=None,
+                      location=None,
+                      description=None):
+        event = CalendarEvent(title=title or u"Test Event",
+                              description=description or u"Test Description",
+                              location=location or u"Home",
+                              start_time=start_time or datetime.utcnow(),
+                              end_time=end_time or datetime.utcnow())
         event.creator = user
         event.__acl__ = self._event_acl(user.username, allowed_principals)
         return calendar.store_event(event)

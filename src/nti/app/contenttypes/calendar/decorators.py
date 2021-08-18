@@ -12,10 +12,10 @@ from zope import interface
 from nti.app.contenttypes.calendar import CONTENTS_VIEW_NAME
 from nti.app.contenttypes.calendar import EXPORT_VIEW_NAME
 
+from nti.app.contenttypes.calendar.authorization import ACT_RECORD_EVENT_ATTENDANCE
+
 from nti.app.contenttypes.calendar.interfaces import ICalendarEventAttendanceLinkSource
 from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
-
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 

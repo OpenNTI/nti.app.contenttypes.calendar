@@ -25,14 +25,15 @@ from zope import interface
 
 from nti.app.contenttypes.calendar.attendance import DefaultCalendarEventAttendanceLinkSource
 from nti.app.contenttypes.calendar.attendance import EventUserSearchHit
+
+from nti.app.contenttypes.calendar.authorization import ACT_RECORD_EVENT_ATTENDANCE
+from nti.app.contenttypes.calendar.authorization import ACT_VIEW_EVENT_ATTENDANCE
+
 from nti.app.contenttypes.calendar.interfaces import IEventUserSearchHit
 
 from nti.app.contenttypes.calendar.tests import SharedConfiguringTestLayer
 
 from nti.app.products.courseware.calendar.interfaces import ICourseCalendarEvent
-
-from nti.app.products.courseware.interfaces import ACT_RECORD_EVENT_ATTENDANCE
-from nti.app.products.courseware.interfaces import ACT_VIEW_EVENT_ATTENDANCE
 
 from nti.contenttypes.calendar.interfaces import ICalendarDynamicEvent
 
