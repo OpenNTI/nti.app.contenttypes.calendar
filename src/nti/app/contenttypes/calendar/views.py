@@ -258,13 +258,16 @@ class CalendarContentsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
             raise ValueError(u"notBefore should be less than notAfter")
 
         res = {}
+
         if notBefore:
             # All events not yet completed before this timestamp.
             res['notBefore'] = lambda x: (x.start_time is not None and x.start_time >= notBefore) \
-                                      or (x.end_time is not None and x.end_time >= notBefore)
+                                      or (x.end_time is not None and x.end_time > notBefore)
         if notAfter:
             # All events started before this timestamp (may or may not be complete)
-            res['notAfter'] = lambda x: (x.start_time is not None and x.start_time <= notAfter)
+            res['notAfter'] = lambda x: (x.start_time is not None and x.start_time < notAfter) \
+                                      or (x.start_time == notAfter and notBefore == notAfter)
+
         if mimeType:
             res['mimeType'] = lambda x: x.mimeType == mimeType
 

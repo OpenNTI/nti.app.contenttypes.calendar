@@ -51,7 +51,10 @@ class TestIndex(ApplicationLayerTest):
         event5 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1199), end_time=None))
 
         event6 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1200), end_time=_adjust_ts(2500)))
+        event61 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1200), end_time=_adjust_ts(1200)))
+        event62 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1200), end_time=None))
         event7 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1600), end_time=_adjust_ts(3600)))
+        event71 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(1600), end_time=None))
         event8 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=_adjust_ts(3660)))
         event9 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=_adjust_ts(4000)))
         event10 = calendar.store_event(CommunityCalendarEvent(title=u'one', start_time=_adjust_ts(3600), end_time=None))
@@ -69,30 +72,47 @@ class TestIndex(ApplicationLayerTest):
         # notBefore, notAfter
         notBefore, notAfter = _adjust_ts(1200), _adjust_ts(3600)
         result = get_indexed_calendar_events(notBefore=notBefore, notAfter=notAfter)
-        assert_that(result, has_length(8))
-        assert_that(result, contains_inanyorder(event2, event3, event4, event6, event7, event8, event9, event10))
+        assert_that(result, has_length(7))
+        assert_that(result, contains_inanyorder(event3, event4, event6, event61, event62, event7, event71))
 
         result = get_indexed_calendar_events(notBefore=notBefore)
-        assert_that(result, has_length(10))
-        assert_that(result, contains_inanyorder(event2, event3, event4, event6, event7, event8, event9, event10, event11, event12))
+        assert_that(result, has_length(12))
+        assert_that(result, contains_inanyorder(event3, event4, event6, event61, event62, event7, event71, event8, event9, event10, event11, event12))
 
         result = get_indexed_calendar_events(notAfter=notAfter)
         assert_that(result, has_length(10))
-        assert_that(result, contains_inanyorder(event1, event2, event3, event4, event5, event6, event7, event8, event9, event10))
+        assert_that(result, contains_inanyorder(event1, event2, event3, event4, event5, event6, event61, event62, event7, event71))
 
+        # notBefore, start_time >= notBefore or end_time > notBefore
         result = get_indexed_calendar_events(notBefore=_adjust_ts(3660))
-        assert_that(result, has_length(5))
-        assert_that(result, contains_inanyorder(event4, event8, event9, event11, event12))
+        assert_that(result, contains_inanyorder(event9, event11, event12))
 
         result = get_indexed_calendar_events(notBefore=_adjust_ts(960))
-        assert_that(result, has_length(12))
+        assert_that(result, has_length(15))
 
+        result = get_indexed_calendar_events(notBefore=_adjust_ts(3800))
+        assert_that(result, contains_inanyorder(event9, event11))
+
+        result = get_indexed_calendar_events(notBefore=_adjust_ts(4000))
+        assert_that(result, has_length(0))
+
+        # notAfter, start_time < notAfter
         result = get_indexed_calendar_events(notAfter=_adjust_ts(3660))
-        assert_that(result, has_length(12))
+        assert_that(result, has_length(13))
 
-        result = get_indexed_calendar_events(notAfter=_adjust_ts(960))
+        result = get_indexed_calendar_events(notAfter=_adjust_ts(1200))
+        assert_that(result, has_length(5))
+
+        result = get_indexed_calendar_events(notAfter=_adjust_ts(1020))
         assert_that(result, has_length(3))
         assert_that(result, contains_inanyorder(event1,event2, event3))
+
+        result = get_indexed_calendar_events(notAfter=_adjust_ts(960))
+        assert_that(result, has_length(0))
+
+        # notBefore == notAfter
+        result = get_indexed_calendar_events(notBefore=_adjust_ts(1200), notAfter=_adjust_ts(1200))
+        assert_that(result, contains_inanyorder(event6, event61, event62))
 
     @WithMockDSTrans
     def test_mimetypes(self):
